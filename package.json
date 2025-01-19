@@ -1,0 +1,13 @@
+{
+  "name": "opu_nskal_monke",
+  "version": "1.0.0",
+  "description": "A Tampermonkey script for uploading files and fetching gallery links from OPU, integrating with okoun.cz.",
+  "main": "src/OPU_NSKAL_MONKE_v1.js",
+  "scripts": {
+    "start": "echo 'This project is a Tampermonkey script and does not require a start script.'"
+  },
+  "author": "You",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}
