@@ -36,9 +36,13 @@
         .tools {
             display: flex;
             align-items: center;
+            justify-content: space-between; /* Add this line to space out elements */
         }
         .tools > div, .tools > span {
             margin-right: 10px;
+        }
+        .tools .right-align {
+            margin-left: auto; /* Add this class to right-align elements */
         }
         .nskal-input {
             margin-right: 10px;
@@ -61,10 +65,10 @@
         }
         #progressBar {
             width: 0%;
-            height: 20px;
+            height: 5px;
             background-color: #4CAF50;
             text-align: center;
-            line-height: 20px;
+            line-height: 5px;
             color: white;
         }
     `);
@@ -255,7 +259,7 @@
                                 formData.append('obrazek[0]', fileToUpload);
                                 formData.append('sizep', '0');
                                 formData.append('outputf', 'auto');
-                                formData.append('tl_odeslat', 'Odeslat');
+                                formData.append('tl_odeslat', 'Odeslat'); // Ensure button text is 'Odeslat'
 
                                 await new Promise((resolve, reject) => {
                                     GM_xmlhttpRequest({
@@ -284,7 +288,6 @@
                                 // Update progress bar
                                 const progress = ((i + 1) / files.length) * 100;
                                 progressBar.style.width = `${progress}%`;
-                                progressBar.textContent = `${Math.round(progress)}%`;
                             }
 
                             if (links.length > 0) {
@@ -304,32 +307,63 @@
                 });
             }
 
-            // Insert the inputs, progress bar, and button into the tools div
+            // Create a container for the right-aligned buttons
+            const rightAlignContainer = document.createElement('div');
+            rightAlignContainer.className = 'right-align';
+
+            // Move the "Odeslat" and "Náhled" buttons to the right-align container
+            const submitButton = toolsDiv.querySelector('button.submit[type="submit"]');
+            const previewButton = toolsDiv.querySelector('button.submit[name="previewFlag"]');
+            if (submitButton) rightAlignContainer.appendChild(submitButton.parentElement);
+            if (previewButton) rightAlignContainer.appendChild(previewButton.parentElement);
+
+            // Insert the inputs, button, and right-align container into the tools div
             toolsDiv.insertBefore(customTagInput, toolsDiv.firstChild);
             toolsDiv.insertBefore(resizePercentageInput, toolsDiv.firstChild);
-            toolsDiv.insertBefore(progressBarContainer, toolsDiv.firstChild);
             toolsDiv.insertBefore(button, toolsDiv.firstChild);
+            toolsDiv.appendChild(rightAlignContainer);
+            // Insert the progress bar container after the tools div
+            toolsDiv.parentNode.insertBefore(progressBarContainer, toolsDiv.nextSibling);
         } else {
             console.log('Tools div not found.');
         }
     }
 
-    // Wait for the text area to become visible before adding the button
-    function waitForTextArea() {
+    // Function to change the button text on the page
+    function changeButtonText() {
+        const observer = new MutationObserver(() => {
+            const submitButton = document.querySelector('form#article-form-main button.submit[type="submit"]');
+            if (submitButton) {
+                console.log('Submit button found:', submitButton.textContent);
+                if (submitButton.textContent === 'Odeslat příspěvek') {
+                    submitButton.textContent = 'Odeslat';
+                    console.log('Submit button text changed to:', submitButton.textContent);
+                    observer.disconnect();
+                }
+            }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    // Wait for the text area and submit button to become visible before adding the button and changing the text
+    function waitForElements() {
         const textArea = document.querySelector('textarea[name="body"]');
-        if (textArea && textArea.offsetParent !== null) {
-            console.log('Text area is visible, adding button.');
+        const submitButton = document.querySelector('form#article-form-main button.submit[type="submit"]');
+        if (textArea && textArea.offsetParent !== null && submitButton) {
+            console.log('Text area and submit button are visible, adding button and changing text.');
             addButtonToPage();
+            changeButtonText();
         } else {
-            console.log('Text area not visible yet, waiting...');
-            setTimeout(waitForTextArea, 500);
+            console.log('Text area or submit button not visible yet, waiting...');
+            setTimeout(waitForElements, 500);
         }
     }
 
     // Run the script on okoun.cz
     if (window.location.hostname === 'www.okoun.cz') {
-        console.log('Running on okoun.cz, waiting for text area.');
-        waitForTextArea();
+        console.log('Running on okoun.cz, waiting for elements.');
+        waitForElements();
     }
 
     // Reload the board page after the post is submitted
