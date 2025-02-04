@@ -379,5 +379,4 @@
     GM_registerMenuCommand('Open OPU NSKAL', () => {
         document.getElementById('popup').style.display = 'block';
     });
-
 })();
