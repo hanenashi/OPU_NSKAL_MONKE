@@ -404,8 +404,13 @@ const UI = {
                 .map(link => UI.generateOutputFormat(link, toggles, templateInput.value))
                 .join(separator);
 
-            // Simply clear and set new content
+            // Update both text area and preview
             textArea.value = imgTags;
+            UI.updatePreview(galleryLinks, {
+                customTag: currentTag,
+                toggles: toggles,
+                customTemplate: templateInput.value
+            });
 
             // Visual feedback
             const originalText = updateButton.textContent;
@@ -630,11 +635,18 @@ const UI = {
             gap: 8px;
         }
 
-        /* Override button styles to match okoun.cz */
+        /* Override button styles to match okoun.cz for ALL buttons */
         .nskal-button,
-        .nskal-toggle-button {
+        .nskal-toggle-button,
+        .submit[type="submit"],
+        #opuNskalUpdateButton,
+        #opuNskalButton,
+        #opuNskalSettingsButton,
+        #opuNskalEditButton,
+        #opuNskalSaveButton {
             display: block;
-            border: none;
+            border: 2px solid #ccc;
+            border-radius: 3px;
             margin: 0;
             padding: 0 10px;
             font-size: 93%;
@@ -642,22 +654,11 @@ const UI = {
             min-height: 2em;
             color: #000;
             font-weight: bold;
-            background-color: transparent;
+            background: linear-gradient(to bottom, #fff 0%, #eee 100%);
             cursor: pointer;
             position: relative;
             text-align: center;
             overflow: visible;
-        }
-
-        /* Keep our color states but adjust to okoun style */
-        #opuNskalButton,
-        #opuNskalSettingsButton,
-        #opuNskalEditButton,
-        #opuNskalSaveButton,
-        .nskal-toggle-button {
-            border: 2px solid #ccc;
-            border-radius: 3px;
-            background: linear-gradient(to bottom, #fff 0%, #eee 100%);
         }
 
         /* Active states */
@@ -668,19 +669,22 @@ const UI = {
         }
 
         /* Hover states */
-        #opuNskalButton:hover,
-        #opuNskalSettingsButton:hover,
-        #opuNskalEditButton:hover,
-        #opuNskalSaveButton:hover,
-        .nskal-toggle-button:hover {
+        .nskal-button:hover,
+        .nskal-toggle-button:hover,
+        .submit[type="submit"]:hover,
+        #opuNskalUpdateButton:hover {
             border-color: #999;
         }
 
-        /* Remove old button styles */
-        .nskal-button { background-color: transparent !important; }
-        #opuNskalButton:hover { background-color: transparent !important; }
-        #opuNskalSettingsButton:hover { background-color: transparent !important; }
-        #opuNskalEditButton:hover { background-color: transparent !important; }
+        /* Disabled states */
+        #opuNskalSaveButton:disabled,
+        #opuNskalUpdateButton:disabled {
+            opacity: 0.7;
+            cursor: default;
+            color: #45a049;
+            border-color: #45a049;
+            background: linear-gradient(to bottom, #ffffff 0%, #e8f5e9 100%);
+        }
 
         /* Tools div layout */
         .tools {
@@ -777,58 +781,70 @@ const UI = {
 
     GM_addStyle(STYLES);
 
-    const insertNskalButtons = (toolsDiv) => {
+    const insertNskalButtons = (toolsDiv, isLoggedIn) => {
         const buttonGroup = document.createElement('div');
         buttonGroup.className = 'nskal-button-group';
 
-        // Create buttons in desired order: NSKAL Edit Settings
-        const uploadButton = Utils.createButton('opuNskalButton', 'NSKAL');
-        const editButton = Utils.createButton('opuNskalEditButton', 'EDIT');
-        const settingsButton = Utils.createButton('opuNskalSettingsButton', 'Settings');
+        if (isLoggedIn) {
+            // Create buttons in desired order: NSKAL Edit Settings
+            const uploadButton = Utils.createButton('opuNskalButton', 'NSKAL');
+            const editButton = Utils.createButton('opuNskalEditButton', 'EDIT');
+            const settingsButton = Utils.createButton('opuNskalSettingsButton', 'Settings');
 
-        // Add buttons in the new order
-        buttonGroup.appendChild(uploadButton);
-        buttonGroup.appendChild(editButton);
-        buttonGroup.appendChild(settingsButton);
+            // Add buttons in the new order
+            buttonGroup.appendChild(uploadButton);
+            buttonGroup.appendChild(editButton);
+            buttonGroup.appendChild(settingsButton);
 
-        // Insert at the beginning of tools div
-        toolsDiv.insertBefore(buttonGroup, toolsDiv.firstChild);
+            // Insert at the beginning of tools div
+            toolsDiv.insertBefore(buttonGroup, toolsDiv.firstChild);
 
-        const settingsPanel = UI.createSettingsPanel(settings, (newSettings) => {
-            Storage.saveSettings(newSettings);
-            settings = newSettings;
-            UI.updatePreview(galleryLinks, settings);
-        });
-        toolsDiv.parentNode.insertBefore(settingsPanel, toolsDiv.nextSibling);
+            const settingsPanel = UI.createSettingsPanel(settings, (newSettings) => {
+                Storage.saveSettings(newSettings);  
+                settings = newSettings;             
+                UI.updatePreview(galleryLinks, settings);  
+            });
+            toolsDiv.parentNode.insertBefore(settingsPanel, toolsDiv.nextSibling);
 
-        const progressBarContainer = document.createElement('div');
-        progressBarContainer.id = 'progressBarContainer';
-        const progressBar = document.createElement('div');
-        progressBar.id = 'progressBar';
-        progressBarContainer.appendChild(progressBar);
-        toolsDiv.parentNode.insertBefore(progressBarContainer, toolsDiv.nextSibling);
+            const progressBarContainer = document.createElement('div');
+            progressBarContainer.id = 'progressBarContainer';
+            const progressBar = document.createElement('div');
+            progressBar.id = 'progressBar';
+            progressBarContainer.appendChild(progressBar);
+            toolsDiv.parentNode.insertBefore(progressBarContainer, toolsDiv.nextSibling);
 
-        settingsButton.addEventListener('click', () => {
-            settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'flex' : 'none';
-        });
-
-        uploadButton.addEventListener('click', async () => {
-            const fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.multiple = true;
-            fileInput.style.display = 'none';
-
-            fileInput.addEventListener('change', async () => {
-                const files = Array.from(fileInput.files);
-                await uploadFiles(files);
+            settingsButton.addEventListener('click', () => {
+                settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'flex' : 'none';
             });
 
-            fileInput.click();
-        });
+            uploadButton.addEventListener('click', async () => {
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.multiple = true;
+                fileInput.style.display = 'none';
 
-        editButton.addEventListener('click', () => {
-            openEditWindow();
-        });
+                fileInput.addEventListener('change', async () => {
+                    const files = Array.from(fileInput.files);
+                    await uploadFiles(files);
+                });
+
+                fileInput.click();
+            });
+
+            editButton.addEventListener('click', () => {
+                openEditWindow();
+            });
+        } else {
+            // Create login button that links to OPU login page
+            const loginButton = document.createElement('a');
+            loginButton.id = 'opuLoginButton';
+            loginButton.href = CONFIG.urls.opu.login;
+            loginButton.target = "_blank";
+            loginButton.textContent = 'OPU LOGIN';
+            loginButton.className = 'nskal-button';
+            buttonGroup.appendChild(loginButton);
+            toolsDiv.insertBefore(buttonGroup, toolsDiv.firstChild);
+        }
     };
 
     const uploadFiles = async (files) => {
@@ -897,7 +913,6 @@ const UI = {
             if (files.length) {
                 const imgWindow = window.open('', '_blank');
                 if (imgWindow) {
-                    // Rest of the code remains the same
                     imgWindow.document.write(`
                         <html>
                         <head>
@@ -920,7 +935,6 @@ const UI = {
                             </style>
                         </head>
                         <body>
-                            <h1>Selected Images</h1>
                             <table>
                                 <thead>
                                     <tr>
@@ -1020,10 +1034,11 @@ const createCropWindow = (imgSrc, file) => {
             </style>
         </head>
         <body>
-            <h1>Crop Image</h1>
+            <button id="cropConfirmButton" class="crop-button">Done</button>
+            <br><br>
+
             <img id="cropImage" src="${imgSrc}">
             <br><br>
-            <button id="cropConfirmButton" class="crop-button">Confirm Crop</button>
 
             <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
             <script>
@@ -1065,14 +1080,9 @@ const createCropWindow = (imgSrc, file) => {
 
     const initialize = async () => {
         const isLoggedIn = await API.checkLoginStatus();
-        if (!isLoggedIn) {
-            alert('Please log in to OPU to use this feature.');
-            return;
-        }
-
         const toolsDiv = document.querySelector(CONFIG.selectors.toolsDiv);
         if (toolsDiv) {
-            insertNskalButtons(toolsDiv);
+            insertNskalButtons(toolsDiv, isLoggedIn);
         }
     };
 
