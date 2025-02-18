@@ -344,9 +344,9 @@ const UI = {
         };
 
         toggleRow.appendChild(createToggleButton('url', 'URL'));
-        toggleRow.appendChild(createToggleButton('imgSrc', 'IMG SRC'));
-        toggleRow.appendChild(createToggleButton('aHref', 'A HREF'));
-        toggleRow.appendChild(createToggleButton('aHrefImg', 'A HREF IMG'));  // Add new toggle button
+        toggleRow.appendChild(createToggleButton('imgSrc', 'IMG'));
+        toggleRow.appendChild(createToggleButton('aHref', 'AHR'));
+        toggleRow.appendChild(createToggleButton('aHrefImg', 'AHRI'));  // Add new toggle button
         
         // Create custom code group (button + input field)
         const customGroup = document.createElement('div');
@@ -389,6 +389,36 @@ const UI = {
         inputRow.appendChild(tagGroup);
         settingsContainer.appendChild(inputRow);
 
+        // Add Update button before Save button
+        const updateButton = Utils.createButton('opuNskalUpdateButton', 'Update');
+        updateButton.addEventListener('click', () => {
+            const textArea = document.querySelector(CONFIG.selectors.textArea);
+            if (!textArea || !galleryLinks.length) return;
+
+            // Use current input values instead of saved settings
+            const currentTag = tagInput.value?.trim() || '<p>';
+            const separator = `\n\n${currentTag}\n\n`;
+
+            // Generate new content
+            const imgTags = galleryLinks
+                .map(link => UI.generateOutputFormat(link, toggles, templateInput.value))
+                .join(separator);
+
+            // Simply clear and set new content
+            textArea.value = imgTags;
+
+            // Visual feedback
+            const originalText = updateButton.textContent;
+            updateButton.textContent = 'Updated!';
+            updateButton.disabled = true;
+            
+            setTimeout(() => {
+                updateButton.textContent = originalText;
+                updateButton.disabled = false;
+            }, 1000);
+        });
+        settingsContainer.appendChild(updateButton);
+
         // Save button
         const saveButton = Utils.createButton('opuNskalSaveButton', 'Save');
         saveButton.addEventListener('click', () => {
@@ -399,7 +429,16 @@ const UI = {
                 toggles: toggles
             };
             saveCallback(newSettings);
-            alert('Settings saved!');
+            
+            // Visual feedback
+            const originalText = saveButton.textContent;
+            saveButton.textContent = 'Saved!';
+            saveButton.disabled = true;
+            
+            setTimeout(() => {
+                saveButton.textContent = originalText;
+                saveButton.disabled = false;
+            }, 1000);
         });
         settingsContainer.appendChild(saveButton);
 
@@ -511,7 +550,8 @@ const UI = {
 
         /* Preview container */
         #opuNskalPreviewContainer {
-            margin-top: 10px;
+            margin-top: 2px;
+            margin-bottom: 10px;
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
@@ -573,12 +613,14 @@ const UI = {
         .settings-row {
             display: flex;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 25px;
+            gap: 8px;  /* Consistent gap between all elements */
         }
 
         .input-row {
             display: flex;
             align-items: center;
+            margin-bottom: 15px;
             gap: 20px;
         }
 
@@ -686,12 +728,50 @@ const UI = {
             display: flex;
             align-items: center;
             gap: 8px;
+            flex: 1;  /* Take up remaining space */
         }
 
         .nskal-input.custom-template {
-            width: 200px;
-            margin: 0;
+            flex: 1;  /* Fill available space */
+            min-width: 100px;  /* Minimum width */
             height: 2em;
+            margin: 0;
+        }
+
+        /* Button spacing in settings row */
+        .settings-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+            gap: 8px;  /* Consistent gap between all elements */
+        }
+
+        /* Make regular toggle buttons not grow */
+        .nskal-toggle-button {
+            flex-shrink: 0;  /* Prevent buttons from shrinking */
+            // ...existing button styles...
+        }
+
+        /* Save button states */
+        #opuNskalSaveButton:disabled {
+            opacity: 0.7;
+            cursor: default;
+            color: #45a049;
+            border-color: #45a049;
+            background: linear-gradient(to bottom, #ffffff 0%, #e8f5e9 100%);
+        }
+
+        /* Update button style */
+        #opuNskalUpdateButton {
+            margin-bottom: 10px;  /* Space between Update and Save buttons */
+        }
+
+        #opuNskalUpdateButton:disabled {
+            opacity: 0.7;
+            cursor: default;
+            color: #45a049;
+            border-color: #45a049;
+            background: linear-gradient(to bottom, #ffffff 0%, #e8f5e9 100%);
         }
     `;
 
