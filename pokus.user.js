@@ -4,7 +4,7 @@
 // @version      1.0
 // @description  Add an Edit button to select and display an image
 // @author       You
-// @match        file:///E:/pokus.html
+// @match        https://hanenashi.github.io/OPU_NSKAL_MONKE/index.html
 // @grant        none
 // ==/UserScript==
 
