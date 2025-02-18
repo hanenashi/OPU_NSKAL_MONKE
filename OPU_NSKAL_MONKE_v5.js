@@ -36,10 +36,13 @@
         defaults: {
             customTag: '<p>',
             resizePercentage: 100,
+            customTemplate: '[url]',  // Simplified default template
             toggleStates: {
                 url: false,
                 imgSrc: true,
-                aHref: false
+                aHref: false,
+                aHrefImg: false,  // Add new toggle state
+                customCode: false  // Add new toggle state
             }
         },
         selectors: {
@@ -63,7 +66,7 @@
     // ------------------------------------------------------------------------
 
     const Utils = {
-        createButton: (id, text, className = 'nskal-button', type = 'button') => {
+        createButton: (id, text, className = 'nskal-button yui-button', type = 'button') => {
             const button = document.createElement('button');
             button.id = id;
             button.textContent = text;
@@ -108,10 +111,13 @@
             return {
                 customTag: Storage.get('customTag', CONFIG.defaults.customTag),
                 resizePercentage: parseInt(Storage.get('resizePercentage', CONFIG.defaults.resizePercentage), 10),
+                customTemplate: Storage.get('customTemplate', CONFIG.defaults.customTemplate),  // Add template storage
                 toggles: {
                     url: Storage.get('toggleUrl', false),
                     imgSrc: Storage.get('toggleImgSrc', true),
-                    aHref: Storage.get('toggleAHref', false)
+                    aHref: Storage.get('toggleAHref', false),
+                    aHrefImg: Storage.get('toggleAHrefImg', false),  // Add new toggle
+                    customCode: Storage.get('toggleCustomCode', false)  // Add new toggle
                 }
             };
         },
@@ -119,9 +125,12 @@
         saveSettings: (settings) => {
             Storage.set('customTag', settings.customTag);
             Storage.set('resizePercentage', settings.resizePercentage);
+            Storage.set('customTemplate', settings.customTemplate);  // Add template storage
             Storage.set('toggleUrl', settings.toggles.url);
             Storage.set('toggleImgSrc', settings.toggles.imgSrc);
             Storage.set('toggleAHref', settings.toggles.aHref);
+            Storage.set('toggleAHrefImg', settings.toggles.aHrefImg);  // Add new toggle
+            Storage.set('toggleCustomCode', settings.toggles.customCode);  // Add new toggle
         }
     };
 
@@ -337,6 +346,21 @@ const UI = {
         toggleRow.appendChild(createToggleButton('url', 'URL'));
         toggleRow.appendChild(createToggleButton('imgSrc', 'IMG SRC'));
         toggleRow.appendChild(createToggleButton('aHref', 'A HREF'));
+        toggleRow.appendChild(createToggleButton('aHrefImg', 'A HREF IMG'));  // Add new toggle button
+        
+        // Create custom code group (button + input field)
+        const customGroup = document.createElement('div');
+        customGroup.className = 'custom-code-group';
+        
+        // Add custom toggle button
+        customGroup.appendChild(createToggleButton('customCode', 'Custom'));
+        
+        // Add template input directly after custom button
+        const templateInput = Utils.createInput('text', '[url]', 'nskal-input custom-template', settings.customTemplate);
+        templateInput.value = settings.customTemplate;
+        customGroup.appendChild(templateInput);
+        
+        toggleRow.appendChild(customGroup);
         settingsContainer.appendChild(toggleRow);
 
         // Create inputs row
@@ -346,7 +370,7 @@ const UI = {
         const resizeGroup = document.createElement('div');
         resizeGroup.className = 'input-group';
         const resizeLabel = document.createElement('label');
-        resizeLabel.textContent = 'Resize %:';
+        resizeLabel.textContent = 'Size %:';
         const resizeInput = Utils.createInput('number', 'Resize %', 'nskal-input', settings.resizePercentage);
         resizeInput.min = "1";
         resizeInput.max = "100";
@@ -356,7 +380,7 @@ const UI = {
         const tagGroup = document.createElement('div');
         tagGroup.className = 'input-group';
         const tagLabel = document.createElement('label');
-        tagLabel.textContent = 'Custom Tag:';
+        tagLabel.textContent = '> ? <:';
         const tagInput = Utils.createInput('text', 'Custom Tag', 'nskal-input', settings.customTag);
         tagGroup.appendChild(tagLabel);
         tagGroup.appendChild(tagInput);
@@ -371,6 +395,7 @@ const UI = {
             const newSettings = {
                 customTag: tagInput.value,
                 resizePercentage: parseInt(resizeInput.value, 10),
+                customTemplate: templateInput.value,  // Save template
                 toggles: toggles
             };
             saveCallback(newSettings);
@@ -386,20 +411,29 @@ const UI = {
         if (!previewContainer) return;
 
         const customTag = settings.customTag || '<p>';
-        const imgTags = links.map(link => UI.generateOutputFormat(link, settings.toggles)).join(`\n\n${customTag}\n\n`);
+        const imgTags = links.map(link => UI.generateOutputFormat(link, settings.toggles, settings.customTemplate)).join(`\n\n${customTag}\n\n`);
         previewContainer.innerHTML = imgTags;
     },
 
-    generateOutputFormat: (link, toggles) => {
-        // Start with plain URL if that's all we want
+    generateOutputFormat: (link, toggles, customTemplate) => {
+        // Handle custom code template first
+        if (toggles.customCode) {
+            return customTemplate.replace(/\[url\]/g, link.full);
+        }
+
+        // Handle A HREF IMG output first (highest priority)
+        if (toggles.aHrefImg) {
+            const thumbUrl = link.full.replace(/\/p\/(\d+\/\d+\/\d+\/)([^/]+)$/, '/p/$1thumbs/$2');
+            return `<a href="${link.full}"><img src="${thumbUrl}"></a>`;
+        }
+
+        // Handle other formats
         if (toggles.url) {
             return link.full;
         }
 
-        // Build basic image tag if we want IMG SRC
         let output = toggles.imgSrc ? `<img src="${link.full}">` : link.full;
 
-        // Wrap in anchor tag if A HREF is enabled
         if (toggles.aHref) {
             output = `<a href="${link.full}">${output}</a>`;
         }
@@ -439,7 +473,7 @@ const UI = {
             padding: 15px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            background-color: #fff;
+            background-color:rgb(255, 213, 169);
         }
 
         .nskal-toggle {
@@ -553,16 +587,132 @@ const UI = {
             align-items: center;
             gap: 8px;
         }
+
+        /* Override button styles to match okoun.cz */
+        .nskal-button,
+        .nskal-toggle-button {
+            display: block;
+            border: none;
+            margin: 0;
+            padding: 0 10px;
+            font-size: 93%;
+            line-height: 2;
+            min-height: 2em;
+            color: #000;
+            font-weight: bold;
+            background-color: transparent;
+            cursor: pointer;
+            position: relative;
+            text-align: center;
+            overflow: visible;
+        }
+
+        /* Keep our color states but adjust to okoun style */
+        #opuNskalButton,
+        #opuNskalSettingsButton,
+        #opuNskalEditButton,
+        #opuNskalSaveButton,
+        .nskal-toggle-button {
+            border: 2px solid #ccc;
+            border-radius: 3px;
+            background: linear-gradient(to bottom, #fff 0%, #eee 100%);
+        }
+
+        /* Active states */
+        .nskal-toggle-button.active {
+            background: linear-gradient(to bottom, #4CAF50 0%, #45a049 100%);
+            border-color: #45a049;
+            color: white;
+        }
+
+        /* Hover states */
+        #opuNskalButton:hover,
+        #opuNskalSettingsButton:hover,
+        #opuNskalEditButton:hover,
+        #opuNskalSaveButton:hover,
+        .nskal-toggle-button:hover {
+            border-color: #999;
+        }
+
+        /* Remove old button styles */
+        .nskal-button { background-color: transparent !important; }
+        #opuNskalButton:hover { background-color: transparent !important; }
+        #opuNskalSettingsButton:hover { background-color: transparent !important; }
+        #opuNskalEditButton:hover { background-color: transparent !important; }
+
+        /* Tools div layout */
+        .tools {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            justify-content: space-between;  /* Changed from flex-end */
+            gap: 10px;
+            position: relative;
+        }
+
+        .nskal-button-group {
+            display: flex;
+            gap: 5px;
+            margin-right: auto;  /* Changed from margin-left */
+            order: -1;  /* Places our buttons before other elements */
+        }
+
+        /* Responsive button text */
+        @media (max-width: 768px) {
+            .nskal-button {
+                min-width: auto;
+                white-space: nowrap;
+                padding: 0 5px;
+            }
+            .nskal-button-group {
+                width: auto;  /* Changed from 100% */
+                justify-content: flex-start;  /* Changed from flex-end */
+                margin-bottom: 10px;
+            }
+        }
+
+        /* Add style for wide input */
+        .template-group {
+            display: none;
+        }
+        
+        .nskal-input.wide {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        /* Custom code group styling */
+        .custom-code-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nskal-input.custom-template {
+            width: 200px;
+            margin: 0;
+            height: 2em;
+        }
     `;
 
     GM_addStyle(STYLES);
 
     const insertNskalButtons = (toolsDiv) => {
-        const uploadButton = Utils.createButton('opuNskalButton', 'NSKAL');
-        const settingsButton = Utils.createButton('opuNskalSettingsButton', 'Settings');
-        const editButton = Utils.createButton('opuNskalEditButton', 'Edit');
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'nskal-button-group';
 
-        toolsDiv.prepend(editButton, settingsButton, uploadButton);
+        // Create buttons in desired order: NSKAL Edit Settings
+        const uploadButton = Utils.createButton('opuNskalButton', 'NSKAL');
+        const editButton = Utils.createButton('opuNskalEditButton', 'EDIT');
+        const settingsButton = Utils.createButton('opuNskalSettingsButton', 'Settings');
+
+        // Add buttons in the new order
+        buttonGroup.appendChild(uploadButton);
+        buttonGroup.appendChild(editButton);
+        buttonGroup.appendChild(settingsButton);
+
+        // Insert at the beginning of tools div
+        toolsDiv.insertBefore(buttonGroup, toolsDiv.firstChild);
 
         const settingsPanel = UI.createSettingsPanel(settings, (newSettings) => {
             Storage.saveSettings(newSettings);
@@ -645,7 +795,7 @@ const UI = {
             const customTag = settings.customTag?.trim() || '<p>';
             const separator = `\n\n${customTag}\n\n`;
             const imgTags = uploadedLinks
-                .map(link => UI.generateOutputFormat(link, settings.toggles))
+                .map(link => UI.generateOutputFormat(link, settings.toggles, settings.customTemplate))
                 .join(separator);
             
             if (textArea.value) {
