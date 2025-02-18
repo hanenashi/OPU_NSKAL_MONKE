@@ -837,37 +837,178 @@ const UI = {
     };
 
     const openEditWindow = () => {
-        // Create file input in the main window
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
+        // Use Utils.createInput instead of createFileInput
+        const fileInput = Utils.createInput('file', '', 'nskal-input');
         fileInput.multiple = true;
-        fileInput.style.display = 'none';
+        fileInput.accept = 'image/*';
+        
+        fileInput.onchange = event => {
+            const files = Array.from(event.target.files);
+            if (files.length) {
+                const imgWindow = window.open('', '_blank');
+                if (imgWindow) {
+                    // Rest of the code remains the same
+                    imgWindow.document.write(`
+                        <html>
+                        <head>
+                            <title>Image List</title>
+                            <style>
+                                body { font-family: Arial, sans-serif; padding: 20px; }
+                                table { width: 100%; border-collapse: collapse; }
+                                th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; }
+                                th { background-color: #f4f4f4; }
+                                img { max-width: 100px; max-height: 100px; }
+                                button { margin-top: 10px; }
+                                .crop-button { 
+                                    background-color: #4CAF50; 
+                                    color: white;
+                                    border: none;
+                                    padding: 5px 10px;
+                                    cursor: pointer;
+                                    border-radius: 3px;
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <h1>Selected Images</h1>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Image</th>
+                                        <th>Name</th>
+                                        <th>Dimensions</th>
+                                        <th>Size (MB)</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="imageTableBody"></tbody>
+                            </table>
+                        </body>
+                    </html>
+                    `);
+                    imgWindow.document.close();
+                    
+                    const tableBody = imgWindow.document.getElementById('imageTableBody');
 
-        fileInput.addEventListener('change', () => {
-            const files = Array.from(fileInput.files);
-            if (files.length > 0) {
-                // Open the edit window and pass the files
-                const editWindow = UI.createEditWindow();
-
-                // Add files to the edit window
-                files.forEach((file, index) => {
-                    UI.addFileToList(editWindow, file, index);
-                });
-
-                editWindow.uploadCroppedImages = async () => {
-                    const fileList = editWindow.document.querySelectorAll('.edit-file-item');
-                    for (const item of fileList) {
-                        if (item.croppedFile) {
-                            await uploadFiles([item.croppedFile]);
+                    // Handle cropped images - same as in pokus.user.js
+                    window.addEventListener('message', event => {
+                        if (event.data.type === 'croppedImage') {
+                            const originalRow = Array.from(tableBody.querySelectorAll('tr'))
+                                .find(row => row.querySelector('td:nth-child(2)').textContent === event.data.originalName);
+                            
+                            const croppedRow = imgWindow.document.createElement('tr');
+                            croppedRow.innerHTML = `
+                                <td><img src="${event.data.imgSrc}"></td>
+                                <td>${event.data.name}</td>
+                                <td>${event.data.width} x ${event.data.height}</td>
+                                <td>${(event.data.size / (1024 * 1024)).toFixed(2)}</td>
+                                <td></td>
+                            `;
+                            
+                            originalRow?.insertAdjacentElement('afterend', croppedRow);
                         }
-                    }
-                };
-            }
-        });
+                    });
 
-        // Trigger the file input
+                    // Process selected files
+                    files.forEach(file => {
+                        const reader = new FileReader();
+                        reader.onload = e => {
+                            const img = new Image();
+                            img.onload = () => handleImageLoad(imgWindow, tableBody, file, e.target.result, img);
+                            img.src = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                }
+            }
+        };
+        
         fileInput.click();
     };
+
+    // Add the handleImageLoad function if not already defined
+    const handleImageLoad = (imgWindow, tableBody, file, imgSrc, img) => {
+        const row = imgWindow.document.createElement('tr');
+        row.innerHTML = `
+            <td><img src="${imgSrc}"></td>
+            <td>${file.name}</td>
+            <td>${img.width} x ${img.height}</td>
+            <td>${(file.size / (1024 * 1024)).toFixed(2)}</td>
+            <td><button class="crop-button">Crop</button></td>
+        `;
+        
+        row.querySelector('.crop-button').onclick = () => {
+            const cropWindow = window.open('', '_blank');
+            if (cropWindow) {
+                cropWindow.document.write(createCropWindow(imgSrc, file));
+                cropWindow.document.close();
+            }
+        };
+        
+        tableBody.appendChild(row);
+    };
+
+    // Add this function before handleImageLoad
+const createCropWindow = (imgSrc, file) => {
+    return `
+        <html>
+        <head>
+            <title>Crop Image</title>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+            <style>
+                body { font-family: Arial, sans-serif; padding: 20px; }
+                #cropImage { max-width: 100%; max-height: 80vh; }
+                .crop-button {
+                    background-color: #4CAF50;
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    cursor: pointer;
+                    border-radius: 4px;
+                    margin-top: 10px;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>Crop Image</h1>
+            <img id="cropImage" src="${imgSrc}">
+            <br><br>
+            <button id="cropConfirmButton" class="crop-button">Confirm Crop</button>
+
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+            <script>
+                const image = document.getElementById('cropImage');
+                const cropper = new Cropper(image, {
+                    aspectRatio: NaN,
+                    viewMode: 1,
+                    autoCropArea: 1,
+                    movable: true,
+                    zoomable: true,
+                    rotatable: true,
+                    scalable: true
+                });
+
+                document.getElementById('cropConfirmButton').addEventListener('click', () => {
+                    const canvas = cropper.getCroppedCanvas();
+                    canvas.toBlob((blob) => {
+                        const croppedFile = new File([blob], 'cropped_${file.name}', { type: '${file.type}' });
+                        window.opener.postMessage({
+                            type: 'croppedImage',
+                            imgSrc: URL.createObjectURL(blob),
+                            name: croppedFile.name,
+                            width: canvas.width,
+                            height: canvas.height,
+                            size: blob.size,
+                            originalName: '${file.name}'
+                        }, '*');
+                        setTimeout(() => window.close(), 500);
+                    }, '${file.type}');
+                });
+            </script>
+        </body>
+        </html>
+    `;
+};
 
     let settings = Storage.loadSettings();
     let galleryLinks = [];
