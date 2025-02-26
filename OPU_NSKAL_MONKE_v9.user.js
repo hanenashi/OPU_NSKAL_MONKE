@@ -340,7 +340,7 @@
             toggleRow.appendChild(createToggleButton('imgSrc', 'IMG'));
             toggleRow.appendChild(createToggleButton('aHref', 'AHR'));
             toggleRow.appendChild(createToggleButton('aHrefImg', 'AHRI'));
-            
+
             const customGroup = document.createElement('div');
             customGroup.className = 'custom-code-group';
             customGroup.appendChild(createToggleButton('customCode', 'Custom'));
@@ -417,7 +417,7 @@
                 return;
             }
             const customTag = settings.customTag || '<p>';
-            const imgTags = links.length > 0 
+            const imgTags = links.length > 0
                 ? links.map(link => UI.generateOutputFormat(link, settings.toggles, settings.customTemplate)).join(`\n\n${customTag}\n\n`)
                 : 'No images uploaded';
             previewElement.innerHTML = imgTags;
@@ -525,39 +525,25 @@
             background-color: #f9f9f9;
         }
 
-        .edit-file-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
+        .edit-file-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
         }
 
-        .file-row {
-            border-bottom: 1px solid #ddd;
-            padding: 10px 0;
-            display: flex;
-            align-items: flex-start;
-            gap: 20px;
+        .edit-file-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            vertical-align: middle;
         }
 
-        .file-row .image-container {
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .file-row img {
+        .edit-file-table img {
             max-width: 100px;
             max-height: 100px;
-            margin-bottom: 5px;
         }
 
-        .file-row .file-info {
-            text-align: center;
-            font-size: 14px;
-        }
-
-        .file-row .file-info div {
+        .edit-file-table .file-info div {
             margin-bottom: 2px;
         }
 
@@ -782,11 +768,11 @@
 
         if (uploadedLinks.length > 0) {
             const customTag = settings.customTag?.trim() || '<p>';
-            const separator = `\n\n${settings.customTag}\n\n`;
+            const separator = `\n\n${customTag}\n\n`;
             const imgTags = uploadedLinks
                 .map(link => UI.generateOutputFormat(link, settings.toggles, settings.customTemplate))
                 .join(separator);
-            
+
             if (textAreaElement.value) {
                 textAreaElement.value += separator;
             }
@@ -802,7 +788,7 @@
 
         for (let i = 0; i < files.length; i++) {
             let file = files[i];
-            
+
             if (file.original) {
                 file = file.cropped?.blob || file.original;
             }
@@ -845,7 +831,7 @@
         const fileInput = Utils.createInput('file', '', 'nskal-input');
         fileInput.multiple = true;
         fileInput.accept = 'image/*';
-        
+
         fileInput.onchange = event => {
             const files = Array.from(event.target.files);
             if (files.length) {
@@ -855,12 +841,12 @@
                     return;
                 }
 
-                const fileMap = new Map(files.map(file => [file.name, { 
-                    original: file, 
-                    originalImgSrc: null, 
-                    originalWidth: null, 
-                    originalHeight: null, 
-                    cropped: null 
+                const fileMap = new Map(files.map(file => [file.name, {
+                    original: file,
+                    originalImgSrc: null,
+                    originalWidth: null,
+                    originalHeight: null,
+                    cropped: null
                 }]));
 
                 imgWindow.document.write(`
@@ -869,44 +855,43 @@
                         <title>Image List</title>
                         <style>
                             body { font-family: Arial, sans-serif; padding: 20px; }
-                            .file-row { border-bottom: 1px solid #ddd; padding: 10px 0; display: flex; align-items: flex-start; gap: 20px; }
-                            .file-row .image-container { text-align: center; display: flex; flex-direction: column; align-items: center; }
-                            .file-row img { max-width: 100px; max-height: 100px; margin-bottom: 5px; }
-                            .file-row .file-info { text-align: center; font-size: 14px; }
-                            .file-row .file-info div { margin-bottom: 2px; }
-                            .upload-overlay { 
-                                position: fixed; 
-                                top: 0; 
-                                left: 0; 
-                                width: 100%; 
-                                height: 100%; 
-                                background: rgba(0, 0, 0, 0.7); 
-                                display: none; 
-                                flex-direction: column; 
-                                justify-content: center; 
-                                align-items: center; 
-                                z-index: 1000; 
+                            .edit-file-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                            .edit-file-table td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: middle; }
+                            .edit-file-table img { max-width: 100px; max-height: 100px; }
+                            .edit-file-table .file-info div { margin-bottom: 2px; }
+                            .upload-overlay {
+                                position: fixed;
+                                top: 0;
+                                left: 0;
+                                width: 100%;
+                                height: 100%;
+                                background: rgba(0, 0, 0, 0.7);
+                                display: none;
+                                flex-direction: column;
+                                justify-content: center;
+                                align-items: center;
+                                z-index: 1000;
                             }
-                            .upload-overlay span { 
-                                color: white; 
-                                font-size: 24px; 
-                                font-weight: bold; 
-                                text-align: center; 
-                                margin-bottom: 10px; 
+                            .upload-overlay span {
+                                color: white;
+                                font-size: 24px;
+                                font-weight: bold;
+                                text-align: center;
+                                margin-bottom: 10px;
                             }
-                            .upload-overlay .progressBarContainer { 
-                                width: 50%; 
-                                height: 10px; 
-                                background-color: #f5f5f5; 
-                                border-radius: 5px; 
-                                overflow: hidden; 
-                                display: block; 
+                            .upload-overlay .progressBarContainer {
+                                width: 50%;
+                                height: 10px;
+                                background-color: #f5f5f5;
+                                border-radius: 5px;
+                                overflow: hidden;
+                                display: block;
                             }
-                            .upload-overlay .progressBar { 
-                                width: 0%; 
-                                height: 100%; 
-                                background-color: #4CAF50; 
-                                transition: width 0.3s ease; 
+                            .upload-overlay .progressBar {
+                                width: 0%;
+                                height: 100%;
+                                background-color: #4CAF50;
+                                transition: width 0.3s ease;
                             }
                         </style>
                     </head>
@@ -918,7 +903,9 @@
                             </div>
                         </div>
                         <button id="uploadAllButton" class="nskal-button">Upload</button>
-                        <div id="fileList"></div>
+                        <table class="edit-file-table">
+                            <tbody id="fileList"></tbody>
+                        </table>
                     </body>
                     </html>
                 `);
@@ -953,9 +940,9 @@
                 function updateFileList() {
                     fileList.innerHTML = '';
                     fileMap.forEach((fileData, originalName) => {
-                        const row = imgWindow.document.createElement('div');
-                        row.className = 'file-row';
+                        const row = imgWindow.document.createElement('tr');
 
+                        const cropCell = imgWindow.document.createElement('td');
                         const cropButton = Utils.createButton('crop_' + originalName + '_' + Date.now(), 'CROP');
                         cropButton.onclick = () => {
                             const cropWindow = window.open('', '_blank');
@@ -964,40 +951,49 @@
                                 cropWindow.document.close();
                             }
                         };
+                        cropCell.appendChild(cropButton);
 
-                        const originalContainer = imgWindow.document.createElement('div');
-                        originalContainer.className = 'image-container';
-                        const originalImg = imgWindow.document.createElement('img');
-                        originalImg.src = fileData.originalImgSrc;
-                        const originalInfo = imgWindow.document.createElement('div');
-                        originalInfo.className = 'file-info';
-                        originalInfo.innerHTML = `
+                        const origImgCell = imgWindow.document.createElement('td');
+                        const origImg = imgWindow.document.createElement('img');
+                        origImg.src = fileData.originalImgSrc;
+                        origImgCell.appendChild(origImg);
+
+                        const origInfoCell = imgWindow.document.createElement('td');
+                        const origInfo = imgWindow.document.createElement('div');
+                        origInfo.className = 'file-info';
+                        origInfo.innerHTML = `
                             <div>${fileData.original.name}</div>
                             <div>${fileData.originalWidth}x${fileData.originalHeight}</div>
                             <div>${(fileData.original.size / (1024 * 1024)).toFixed(1)} MB</div>
                         `;
-                        originalContainer.appendChild(originalImg);
-                        originalContainer.appendChild(originalInfo);
+                        origInfoCell.appendChild(origInfo);
 
-                        row.appendChild(cropButton);
-                        row.appendChild(originalContainer);
+                        const cropImgCell = imgWindow.document.createElement('td');
+                        const cropInfoCell = imgWindow.document.createElement('td');
 
                         if (fileData.cropped) {
-                            const croppedContainer = imgWindow.document.createElement('div');
-                            croppedContainer.className = 'image-container';
-                            const croppedImg = imgWindow.document.createElement('img');
-                            croppedImg.src = URL.createObjectURL(fileData.cropped.blob);
-                            const croppedInfo = imgWindow.document.createElement('div');
-                            croppedInfo.className = 'file-info';
-                            croppedInfo.innerHTML = `
+                            const cropImg = imgWindow.document.createElement('img');
+                            cropImg.src = URL.createObjectURL(fileData.cropped.blob);
+                            cropImgCell.appendChild(cropImg);
+
+                            const cropInfo = imgWindow.document.createElement('div');
+                            cropInfo.className = 'file-info';
+                            cropInfo.innerHTML = `
                                 <div>${fileData.cropped.name}</div>
                                 <div>${fileData.cropped.width}x${fileData.cropped.height}</div>
                                 <div>${(fileData.cropped.size / (1024 * 1024)).toFixed(1)} MB</div>
                             `;
-                            croppedContainer.appendChild(croppedImg);
-                            croppedContainer.appendChild(croppedInfo);
-                            row.appendChild(croppedContainer);
+                            cropInfoCell.appendChild(cropInfo);
+                        } else {
+                            cropImgCell.textContent = '-';
+                            cropInfoCell.textContent = '-';
                         }
+
+                        row.appendChild(cropCell);
+                        row.appendChild(origImgCell);
+                        row.appendChild(origInfoCell);
+                        row.appendChild(cropImgCell);
+                        row.appendChild(cropInfoCell);
 
                         fileList.appendChild(row);
                     });
@@ -1017,7 +1013,7 @@
                                 const imgTags = uploadedLinks
                                     .map(link => UI.generateOutputFormat(link, settings.toggles, settings.customTemplate))
                                     .join(separator);
-                                
+
                                 if (textAreaElement.value) {
                                     textAreaElement.value += separator + imgTags;
                                 } else {
@@ -1043,12 +1039,12 @@
                     reader.onload = e => {
                         const img = new Image();
                         img.onload = () => {
-                            fileMap.set(file.name, { 
-                                original: file, 
-                                originalImgSrc: e.target.result, 
-                                originalWidth: img.width, 
-                                originalHeight: img.height, 
-                                cropped: null 
+                            fileMap.set(file.name, {
+                                original: file,
+                                originalImgSrc: e.target.result,
+                                originalWidth: img.width,
+                                originalHeight: img.height,
+                                cropped: null
                             });
                             updateFileList();
                         };
@@ -1058,7 +1054,7 @@
                 });
             }
         };
-        
+
         fileInput.click();
     };
 
@@ -1071,7 +1067,7 @@
             <td>${(file.size / (1024 * 1024)).toFixed(2)}</td>
             <td><button class="nskal-button">Crop</button></td>
         `;
-        
+
         row.querySelector('.nskal-button').onclick = () => {
             const cropWindow = window.open('', '_blank');
             if (cropWindow) {
@@ -1079,7 +1075,7 @@
                 cropWindow.document.close();
             }
         };
-        
+
         tableBody.appendChild(row);
     };
 
