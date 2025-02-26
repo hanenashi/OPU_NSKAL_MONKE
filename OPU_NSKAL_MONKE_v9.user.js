@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OPU NSKAL MONKE
 // @namespace    http://tampermonkey.net/
-// @version      6
+// @version      9
 // @description  Upload files and fetch gallery links from OPU and integrate with okoun.cz
 // @author       Blasnik
 // @match        https://opu.peklo.biz/*
