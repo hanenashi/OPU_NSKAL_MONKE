@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OPU NSKAL MONKE
 // @namespace    http://tampermonkey.net/
-// @version      10.17CHEMICALXXX
+// @version      10
 // @description  Upload files and fetch gallery links from OPU and integrate with okoun.cz
 // @author       Blasnik
 // @match        https://opu.peklo.biz/*
@@ -9,7 +9,6 @@
 // @match        https://www.okoun.cz/postArticle.do
 // @grant        GM_setValue
 // @grant        GM_getValue
-//a href="https://www.okoun.cz/postArticle.do
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
 // @grant        GM_registerMenuCommand
@@ -131,9 +130,9 @@
             Storage.set('toggleAHrefImg', settings.toggles.aHrefImg);
             Storage.set('toggleCustomCode', settings.toggles.customCode);
             Storage.set('toggleWidth', settings.toggles.width);
-            Storage.set('widthValue', settings.widthValue);
+            Storage.set('widthValue', settings.toggles.widthValue);
             Storage.set('toggleHeight', settings.toggles.height);
-            Storage.set('heightValue', settings.heightValue);
+            Storage.set('heightValue', settings.toggles.heightValue);
         }
     };
 
@@ -319,28 +318,23 @@
             customGroup.appendChild(templateInput);
             toggleRow.appendChild(customGroup);
 
-            settingsContainer.appendChild(toggleRow);
-
-            const dimensionRow = document.createElement('div');
-            dimensionRow.className = 'dimension-row';
-
             const widthGroup = document.createElement('div');
-            widthGroup.className = 'input-group';
+            widthGroup.className = 'custom-code-group';
             widthGroup.appendChild(createToggleButton('width', 'WIDTH'));
-            const widthInput = Utils.createInput('number', 'Width (px)', 'nskal-input', settings.toggles.widthValue);
+            const widthInput = Utils.createInput('number', 'Width (px)', 'nskal-input custom-template', settings.toggles.widthValue);
             widthInput.min = "1";
             widthGroup.appendChild(widthInput);
-            dimensionRow.appendChild(widthGroup);
+            toggleRow.appendChild(widthGroup);
 
             const heightGroup = document.createElement('div');
-            heightGroup.className = 'input-group';
+            heightGroup.className = 'custom-code-group';
             heightGroup.appendChild(createToggleButton('height', 'HEIGHT'));
-            const heightInput = Utils.createInput('number', 'Height (px)', 'nskal-input', settings.toggles.heightValue);
+            const heightInput = Utils.createInput('number', 'Height (px)', 'nskal-input custom-template', settings.toggles.heightValue);
             heightInput.min = "1";
             heightGroup.appendChild(heightInput);
-            dimensionRow.appendChild(heightGroup);
+            toggleRow.appendChild(heightGroup);
 
-            settingsContainer.appendChild(dimensionRow);
+            settingsContainer.appendChild(toggleRow);
 
             const inputRow = document.createElement('div');
             inputRow.className = 'input-row';
@@ -461,8 +455,6 @@
             border-radius: 4px;
             background: linear-gradient(to bottom, #fff 0%, #eee 100%);
             transition: border-color 0.2s;
-            display: inline-block;
-            box-sizing: border-box;
         }
 
         .nskal-button:hover,
@@ -493,20 +485,6 @@
             border: 1px solid #ddd;
             border-radius: 3px;
             font-size: 14px;
-        }
-
-        .nskal-input[type="number"] {
-            min-width: 80px;
-            max-width: 100px;
-            box-sizing: border-box;
-        }
-
-        .nskal-input.custom-template {
-            flex: 1;
-            min-width: 80px;
-            max-width: 100px;
-            height: 2em;
-            margin: 0;
         }
 
         .progressBarContainer {
@@ -598,20 +576,13 @@
         .settings-row {
             display: flex;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 25px;
             gap: 8px;
-        }
-
-        .dimension-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 15px;
-            gap: 20px;
         }
 
         .input-row {
             display: flex;
-and align-items: center;
+            align-items: center;
             margin-bottom: 15px;
             gap: 20px;
         }
@@ -654,76 +625,16 @@ and align-items: center;
         }
 
         @media (max-width: 768px) {
-            /* Unified button styling for both NSKAL and Okoun buttons */
             .nskal-button,
-            .nskal-toggle-button,
-            div.content.post button[type="submit"],
-            div.actions.replyForm input[type="submit"][value="Odeslat"],
-            div.actions.replyForm input[type="submit"][value="Náhled"],
-            div.content.post .yui-button button {
-                /* Reset all button properties */
-                all: initial;
-                
-                /* Base styling */
-                display: inline-block !important;
-                min-width: 0 !important;
-                width: auto !important;
-                height: 32px !important;
-                line-height: 32px !important;
-                padding: 0 12px !important;
-                margin: 0 5px 5px 0 !important;
-                
-                /* Text styling */
-                font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto !important;
-                font-size: 14px !important;
-                font-weight: normal !important;
-                text-align: center !important;
-                white-space: nowrap !important;
-                color: #000000 !important;
-                
-                /* Visual styling */
-                background: #ffffff !important;
-                border: 1px solid #cccccc !important;
-                border-radius: 4px !important;
-                box-shadow: none !important;
-                
-                /* Mobile optimizations */
-                touch-action: manipulation !important;
-                -webkit-tap-highlight-color: transparent !important;
-                -webkit-appearance: none !important;
-                appearance: none !important;
-                
-                /* Box model */
-                box-sizing: border-box !important;
-                vertical-align: middle !important;
+            .nskal-toggle-button {
+                min-width: auto;
+                white-space: nowrap;
+                padding: 0 5px;
             }
-        
-            /* Force buttons to stay on same row */
-            .tools {
-                display: flex !important;
-                flex-wrap: nowrap !important;
-                overflow-x: auto !important;
-                -webkit-overflow-scrolling: touch !important;
-                padding-bottom: 5px !important;
-                gap: 5px !important;
-                align-items: center !important;
-            }
-        
             .nskal-button-group {
-                display: flex !important;
-                flex: 0 0 auto !important;
-                gap: 5px !important;
-                margin: 0 !important;
-                align-items: center !important;
-            }
-        
-            /* Override any Okoun.cz specific button styles */
-            div.content.post .yui-button,
-            div.content.post .yui-button .first-child {
-                margin: 0 !important;
-                padding: 0 !important;
-                border: none !important;
-                background: none !important;
+                width: auto;
+                justify-content: flex-start;
+                margin-bottom: 10px;
             }
         }
 
@@ -739,243 +650,16 @@ and align-items: center;
             flex: 0 1 auto;
         }
 
+        .nskal-input.custom-template {
+            flex: 1;
+            min-width: 80px;
+            max-width: 100px;
+            height: 2em;
+            margin: 0;
+        }
+
         .resized-info {
-            color: #228B22;
-        }
-
-        .nskal-button.delete {
-            color: #fff;
-            border: 2px solid #ff4444;
-            background: linear-gradient(to bottom, #ff6666 0%, #ff4444 100%);
-            padding: 4px 8px;
-            font-size: 12px;
-        }
-
-        .nskal-button.delete:hover {
-            border-color: #cc0000;
-        }
-
-        /* Okoun.cz button overrides */
-        div.content.post .yui-button,
-        div.content.post .yui-button .first-child {
-            background: none !important;
-            border: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            display: inline-block;
-        }
-
-        div.content.post button[type="submit"] {
-            color: #000;
-            border: 2px solid #ccc;
-            padding: 8px 16px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            margin-right: 10px;
-            border-radius: 4px;
-            background: linear-gradient(to bottom, #fff 0%, #eee 100%);
-            transition: border-color 0.2s;
-            display: inline-block;
-            box-sizing: border-box;
-        }
-
-        div.content.post button[type="submit"]:hover {
-            border-color: #999;
-        }
-
-        div.actions.replyForm input[type="submit"][value="Odeslat"],
-        div.actions.replyForm input[type="submit"][value="Náhled"] {
-            color: #000;
-            border: 2px solid #ccc;
-            padding: 8px 16px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            margin-right: 10px;
-            border-radius: 4px;
-            background: linear-gradient(to bottom, #fff 0%, #eee 100%);
-            transition: border-color 0.2s;
-            box-sizing: border-box;
-        }
-
-        div.actions.replyForm input[type="submit"][value="Odeslat"]:hover,
-        div.actions.replyForm input[type="submit"][value="Náhled"]:hover {
-            border-color: #999;
-        }
-
-        @media (max-width: 768px) {
-            /* Force consistent button styling across all browsers */
-            .nskal-button,
-            .nskal-toggle-button,
-            div.content.post button[type="submit"],
-            div.actions.replyForm input[type="submit"][value="Odeslat"],
-            div.actions.replyForm input[type="submit"][value="Náhled"] {
-                min-width: auto !important;
-                width: auto !important;
-                max-width: none !important;
-                white-space: nowrap !important;
-                padding: 6px 10px !important;
-                font-size: 12px !important;
-                margin-right: 5px !important;
-                margin-bottom: 5px !important;
-                background: #ffffff !important;
-                border: 1px solid #cccccc !important;
-                border-radius: 4px !important;
-                color: #000000 !important;
-                height: auto !important;
-                line-height: normal !important;
-                display: inline-block !important;
-                vertical-align: middle !important;
-                -webkit-appearance: none !important;
-                appearance: none !important;
-                box-sizing: border-box !important;
-                font-family: -apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto !important;
-            }
-
-            /* Force buttons to stay on same row */
-            .tools {
-                display: flex !important;
-                flex-wrap: nowrap !important;
-                overflow-x: auto !important;
-                -webkit-overflow-scrolling: touch !important;
-                padding-bottom: 5px !important;
-                gap: 5px !important;
-            }
-
-            .nskal-button-group {
-                display: flex !important;
-                flex: 0 0 auto !important;
-                gap: 5px !important;
-                margin-right: 5px !important;
-            }
-        }
-
-        @media (max-width: 768px) {
-            /* Common button base styles */
-            .nskal-button,
-            .nskal-toggle-button,
-            div.content.post button[type="submit"],
-            div.actions.replyForm input[type="submit"][value="Odeslat"],
-            div.actions.replyForm input[type="submit"][value="Náhled"],
-            div.content.post .yui-button button {
-                /* Strict reset */
-                all: unset !important;
-                
-                /* Fixed dimensions */
-                min-height: 28px !important;
-                height: 28px !important;
-                line-height: 28px !important;
-                padding: 0 8px !important;
-                margin: 0 4px 4px 0 !important;
-                
-                /* Text styling */
-                font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto !important;
-                font-size: 13px !important;
-                font-weight: normal !important;
-                text-align: center !important;
-                white-space: nowrap !important;
-                
-                /* Visual styling - Making submit/preview buttons red for testing */
-                background: #ffffff !important;
-                border: 1px solid #cccccc !important;
-                border-radius: 4px !important;
-                box-shadow: none !important;
-                
-                /* Layout */
-                display: inline-flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                flex: 0 0 auto !important;
-                box-sizing: border-box !important;
-                min-width: 0 !important;
-                width: auto !important;
-            }
-        
-            /* Make Odeslat and Náhled buttons red for testing */
-            div.actions.replyForm input[type="submit"][value="Odeslat"],
-            div.actions.replyForm input[type="submit"][value="Náhled"],
-            div.content.post button[type="submit"] {
-                background: #ff0000 !important;
-                color: #ffffff !important;
-            }
-        
-            /* Remove any inherited styles from parent elements */
-            div.content.post .yui-button,
-            div.content.post .yui-button .first-child,
-            div.actions.replyForm {
-                all: unset !important;
-                display: inline-flex !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-        
-            /* Container adjustments */
-            .tools {
-                display: flex !important;
-                flex-wrap: nowrap !important;
-                overflow-x: auto !important;
-                -webkit-overflow-scrolling: touch !important;
-                padding-bottom: 5px !important;
-                gap: 4px !important;
-                align-items: center !important;
-            }
-        }
-
-        @media (max-width: 768px) {
-            /* Base button styles - removed */
-            
-            /* Super specific selectors for Odeslat/Náhled buttons */
-            div.actions.replyForm input[type="submit"][value="Odeslat"],
-            div.actions.replyForm input[type="submit"][value="Náhled"],
-            div.content.post button[type="submit"],
-            div.content.post .yui-button button[type="submit"] {
-                background-color: #ff0000 !important;
-                background-image: none !important;
-                background: #ff0000 !important;
-                color: #ffffff !important;
-                border: 1px solid #cc0000 !important;
-                
-                /* Match NSKAL button size */
-                height: 28px !important;
-                line-height: 28px !important;
-                padding: 0 8px !important;
-                margin: 0 4px 4px 0 !important;
-                font-size: 13px !important;
-                
-                /* Force element properties */
-                display: inline-flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                min-width: 0 !important;
-                width: auto !important;
-                box-sizing: border-box !important;
-                border-radius: 4px !important;
-                -webkit-appearance: none !important;
-                appearance: none !important;
-            }
-        
-            /* Container fixes */
-            .tools {
-                display: flex !important;
-                flex-wrap: nowrap !important;
-                overflow-x: auto !important;
-                -webkit-overflow-scrolling: touch !important;
-                padding-bottom: 5px !important;
-                gap: 4px !important;
-                align-items: center !important;
-            }
-        
-            /* Override any container styles */
-            div.content.post .yui-button,
-            div.content.post .yui-button .first-child,
-            div.actions.replyForm {
-                margin: 0 !important;
-                padding: 0 !important;
-                border: none !important;
-                background: none !important;
-                display: inline-flex !important;
-            }
+            color: darkgreen;
         }
     `;
 
@@ -1281,7 +965,7 @@ and align-items: center;
                                 border-color: #888;
                             }
                             .resized-info {
-                                color: #228B22;
+                                color: darkgreen;
                             }
                             .order-badge {
                                 position: absolute;
@@ -1294,16 +978,6 @@ and align-items: center;
                                 padding: 2px 5px;
                                 border-radius: 3px;
                                 z-index: 10;
-                            }
-                            .nskal-button.delete {
-                                color: #fff;
-                                border: 2px solid #ff4444;
-                                background: linear-gradient(to bottom, #ff6666 0%, #ff4444 100%);
-                                padding: 4px 8px;
-                                font-size: 12px;
-                            }
-                            .nskal-button.delete:hover {
-                                border-color: #cc0000;
                             }
                         </style>
                     </head>
@@ -1407,20 +1081,15 @@ and align-items: center;
                             cropInfoCell.textContent = '-';
                         }
 
-                        const deleteCell = imgWindow.document.createElement('td');
-                        const deleteButton = Utils.createButton('delete_' + originalName + '_' + Date.now(), 'DEL', 'nskal-button delete');
-                        deleteCell.appendChild(deleteButton);
-
                         row.appendChild(cropCell);
                         row.appendChild(origImgCell);
                         row.appendChild(origInfoCell);
                         row.appendChild(cropImgCell);
                         row.appendChild(cropInfoCell);
-                        row.appendChild(deleteCell);
 
                         const cropRow = imgWindow.document.createElement('tr');
                         const cropContainerCell = imgWindow.document.createElement('td');
-                        cropContainerCell.colSpan = 6;
+                        cropContainerCell.colSpan = 5;
                         const cropContainer = imgWindow.document.createElement('div');
                         cropContainer.className = 'crop-container';
                         cropContainer.id = 'crop_container_' + originalName;
@@ -1500,20 +1169,6 @@ and align-items: center;
                                 updateFileList();
                             }
                         };
-
-                        deleteButton.onclick = () => {
-                            const removedOrder = fileData.order;
-                            fileMap.delete(originalName);
-                            if (removedOrder !== null) {
-                                fileMap.forEach((data) => {
-                                    if (data.order !== null && data.order > removedOrder) {
-                                        data.order--;
-                                    }
-                                });
-                                nextOrder = Math.max(1, fileMap.size + 1);
-                            }
-                            updateFileList();
-                        };
                     });
                 }
 
@@ -1588,49 +1243,6 @@ and align-items: center;
     let galleryLinks = [];
 
     const initialize = async () => {
-        const tweakOdeslatButton = () => {
-            const applyStyles = () => {
-                const submitButton = document.querySelector('div.content.post button[type="submit"]');
-                if (submitButton && submitButton.textContent === 'Odeslat příspěvek') {
-                    submitButton.textContent = 'Odeslat';
-                    console.log('NSKAL MONKE: Tweaked Odeslat text');
-                }
-
-                // Force mobile styles if needed
-                if (window.innerWidth <= 768) {
-                    const styleSheet = document.createElement('style');
-                    styleSheet.textContent = `
-                        @media (max-width: 768px) {
-                            html body div.content.post button[type="submit"],
-                            html body div.content.post .yui-button button[type="submit"] {
-                                background: #ff0000 !important;
-                                background-color: #ff0000 !important;
-                                color: #ffffff !important;
-                                border: 1px solid #cc0000 !important;
-                            }
-                        }
-                    `;
-                    document.head.appendChild(styleSheet);
-                    console.log('NSKAL MONKE: Forced mobile styles injected');
-                }
-            };
-
-            // Initial application
-            applyStyles();
-
-            // Watch for changes
-            const observer = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    if (mutation.addedNodes.length) {
-                        applyStyles();
-                    }
-                });
-            });
-
-            observer.observe(document.body, { childList: true, subtree: true });
-            console.log('NSKAL MONKE: Button tweak observer started');
-        };
-
         const injectButtons = (form, type) => {
             const toolsDiv = form.querySelector(CONFIG.selectors.toolsDiv);
             const textArea = form.querySelector(CONFIG.selectors.textArea);
@@ -1670,8 +1282,6 @@ and align-items: center;
             childList: true,
             subtree: true
         });
-
-        tweakOdeslatButton();
 
         document.querySelectorAll(CONFIG.selectors.mainPostForm).forEach((form) => injectButtons(form, 'main post'));
         document.querySelectorAll(CONFIG.selectors.replyForm).forEach((form) => injectButtons(form, 'reply'));
