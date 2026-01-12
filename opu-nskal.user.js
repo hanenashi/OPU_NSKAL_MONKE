@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OPU NSKAL MONKE
 // @namespace    http://tampermonkey.net/
-// @version      10.25
+// @version      10.26
 // @description  Full modular uploader with Drag&Drop, Metadata, and v10.20 Tools
 // @author       Blasnik
 // @match        https://opu.peklo.biz/*

@@ -1,47 +1,133 @@
 window.UI = {
     createSettingsPanel: () => {
         if (document.getElementById('nskalSettingsContainer')) return;
-        const panel = document.createElement('div');
-        panel.id = 'nskalSettingsContainer';
-        panel.className = 'nskal-settings-overlay';
-        panel.innerHTML = `
-            <div class="nskal-settings-modal">
-                <div style="display:flex; justify-content:space-between; margin-bottom:15px; border-bottom:1px solid #e69138; padding-bottom:5px">
-                    <b style="color:#b45f06">NSKAL CONFIGURATION</b><button id="nskalClose" style="border:none; background:none; cursor:pointer;">✖</button>
-                </div>
-                <div id="nskalBody"></div>
-            </div>`;
-        document.body.appendChild(panel);
-        panel.querySelector('#nskalClose').onclick = () => panel.style.display = 'none';
-        window.UI.renderSettingsBody();
-    },
-    renderSettingsBody: () => {
-        const s = window.Storage.loadSettings();
-        const body = document.getElementById('nskalBody');
-        body.innerHTML = `
-            <div class="settings-row">Resize: <input type="number" id="n_res" class="nskal-input" value="${s.resizePercentage}" style="width:50px">%</div>
-            <div class="settings-row">Tag: <input type="text" id="n_tag" class="nskal-input" value="${s.customTag}" style="width:80px"></div>
-            <div id="n_formats" style="display:flex; gap:5px; flex-wrap:wrap; margin:10px 0;"></div>
-            <div class="settings-row"><label><input type="checkbox" id="n_width_t" ${s.toggles.width?'checked':''}> Width:</label> <input type="text" id="n_width_v" class="nskal-input" value="${s.toggles.widthValue}" style="width:60px">px</div>
-        `;
-        const formats = [{k:'url', l:'LINK'}, {k:'imgSrc', l:'IMG'}, {k:'aHref', l:'LINKED IMG'}, {k:'aHrefImg', l:'THUMB'}, {k:'customCode', l:'CUSTOM'}];
-        formats.forEach(f => {
-            const btn = document.createElement('button');
-            btn.className = 'nskal-toggle-btn' + (s.toggles[f.k] ? ' active' : '');
-            btn.textContent = f.l;
-            btn.onclick = () => {
-                Object.keys(s.toggles).forEach(k => { if(k!=='width') s.toggles[k]=false; });
-                s.toggles[f.k] = true; window.Storage.saveSettings(s); window.UI.renderSettingsBody();
-            };
-            body.querySelector('#n_formats').appendChild(btn);
+        
+        const container = document.createElement('div');
+        container.id = 'nskalSettingsContainer'; 
+        container.className = 'nskal-settings-overlay';
+
+        const modal = document.createElement('div'); 
+        modal.className = 'nskal-settings-modal';
+
+        // Header
+        const header = document.createElement('div');
+        header.style.cssText = "display:flex; justify-content:space-between; margin-bottom:15px; border-bottom:1px solid #e69138; padding-bottom:10px";
+        header.innerHTML = `<b style="font-size:16px; color:#b45f06">NSKAL CONFIGURATION</b>`;
+        
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '✖';
+        closeBtn.style.cssText = "border:none; background:none; cursor:pointer; font-size:18px";
+        closeBtn.onclick = () => container.style.display = 'none';
+        
+        header.appendChild(closeBtn);
+        modal.appendChild(header);
+
+        // Content
+        const content = document.createElement('div');
+        let currentSettings = window.Storage.loadSettings();
+
+        // 1. Resize
+        const resizeRow = document.createElement('div'); resizeRow.className = 'input-row';
+        resizeRow.innerHTML = `<label style="width:100px">Resize (%):</label>`;
+        const resizeInput = window.Utils.createInput('number', '100', 'nskal-input', currentSettings.resizePercentage);
+        resizeInput.style.width = '60px';
+        resizeInput.onchange = (e) => { currentSettings.resizePercentage = e.target.value; window.Storage.saveSettings(currentSettings); };
+        resizeRow.appendChild(resizeInput);
+        content.appendChild(resizeRow);
+
+        // 2. Custom Tag (Append)
+        const tagRow = document.createElement('div'); tagRow.className = 'input-row';
+        tagRow.innerHTML = `<label style="width:100px">Append Tag:</label>`;
+        const tagInput = window.Utils.createInput('text', '<br>', 'nskal-input', currentSettings.customTag);
+        tagInput.style.width = '100px';
+        tagInput.onchange = (e) => { currentSettings.customTag = e.target.value; window.Storage.saveSettings(currentSettings); updatePreview(); };
+        tagRow.appendChild(tagInput);
+        content.appendChild(tagRow);
+
+        // 3. Output Formats
+        const formatsDiv = document.createElement('div'); 
+        formatsDiv.style.marginBottom = '20px';
+        formatsDiv.innerHTML = `<div style="font-weight:bold; margin:15px 0 10px 0; color:#b45f06">Output Format</div>`;
+
+        const formatOptions = [
+            { key: 'url', label: 'URL Only' }, { key: 'imgSrc', label: '<img> Tag' },
+            { key: 'aHref', label: 'Linked Image' }, { key: 'aHrefImg', label: 'Thumb -> Full' },
+            { key: 'customCode', label: 'Custom Code' }
+        ];
+
+        // Preview Box
+        const previewBox = document.createElement('div'); 
+        previewBox.className = 'preview-box';
+        
+        const updatePreview = () => {
+            const dummyLink = { full: 'https://opu.peklo.biz/p/23/10/18/1234.jpg' };
+            let txt = window.Formatter.generateOutput(dummyLink, currentSettings.toggles, currentSettings.customTemplate);
+            
+            // FIXED TAG LOGIC: Appends tag after image instead of wrapping
+            if (!currentSettings.toggles.customCode && currentSettings.customTag) {
+                txt = txt + currentSettings.customTag;
+            }
+            previewBox.textContent = txt;
+        };
+
+        const toggleContainer = document.createElement('div');
+        toggleContainer.style.display = 'flex'; toggleContainer.style.flexWrap = 'wrap';
+        
+        formatOptions.forEach(opt => {
+            const btn = window.Utils.createToggle(opt.label, currentSettings.toggles[opt.key], (e) => {
+                Object.keys(currentSettings.toggles).forEach(k => {
+                    if (['width','height','widthValue','heightValue'].indexOf(k) === -1) currentSettings.toggles[k] = false;
+                });
+                currentSettings.toggles[opt.key] = true;
+                Array.from(toggleContainer.children).forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                window.Storage.saveSettings(currentSettings);
+                updatePreview();
+            });
+            toggleContainer.appendChild(btn);
         });
-        body.querySelector('#n_res').onchange = (e) => { s.resizePercentage = e.target.value; window.Storage.saveSettings(s); };
-        body.querySelector('#n_tag').onchange = (e) => { s.customTag = e.target.value; window.Storage.saveSettings(s); };
-        body.querySelector('#n_width_t').onclick = (e) => { s.toggles.width = e.target.checked; window.Storage.saveSettings(s); };
-        body.querySelector('#n_width_v').onchange = (e) => { s.toggles.widthValue = e.target.value; window.Storage.saveSettings(s); };
+        formatsDiv.appendChild(toggleContainer); 
+        content.appendChild(formatsDiv);
+
+        // 4. Custom Code Template
+        const customCodeRow = document.createElement('div'); customCodeRow.className = 'input-row';
+        customCodeRow.innerHTML = `<label style="width:100px">Custom Tpl:</label>`;
+        const customInput = window.Utils.createInput('text', '[url]', 'nskal-input', currentSettings.customTemplate);
+        customInput.style.flex = '1';
+        customInput.onchange = (e) => { currentSettings.customTemplate = e.target.value; window.Storage.saveSettings(currentSettings); updatePreview(); };
+        customCodeRow.appendChild(customInput); 
+        content.appendChild(customCodeRow);
+
+        // 5. Dimensions
+        const dimRow = document.createElement('div'); dimRow.className = 'input-row';
+        const wCheck = document.createElement('input'); wCheck.type = 'checkbox'; wCheck.checked = currentSettings.toggles.width;
+        const wVal = window.Utils.createInput('text', 'width', 'nskal-input', currentSettings.toggles.widthValue);
+        wVal.style.width = '50px'; wVal.style.marginRight = '15px';
+        
+        const hCheck = document.createElement('input'); hCheck.type = 'checkbox'; hCheck.checked = currentSettings.toggles.height;
+        const hVal = window.Utils.createInput('text', 'height', 'nskal-input', currentSettings.toggles.heightValue);
+        hVal.style.width = '50px';
+
+        const saveDims = () => {
+            currentSettings.toggles.width = wCheck.checked; currentSettings.toggles.widthValue = wVal.value;
+            currentSettings.toggles.height = hCheck.checked; currentSettings.toggles.heightValue = hVal.value;
+            window.Storage.saveSettings(currentSettings); updatePreview();
+        };
+        wCheck.onchange = wVal.onchange = hCheck.onchange = hVal.onchange = saveDims;
+        dimRow.append(wCheck, ' Width: ', wVal, hCheck, ' Height: ', hVal); 
+        content.appendChild(dimRow);
+
+        content.appendChild(previewBox); 
+        modal.appendChild(content);
+        container.appendChild(modal); 
+        document.body.appendChild(container);
+        
+        updatePreview();
     },
+
     injectButtons: (form, type) => {
-        const tools = form.querySelector(window.CONFIG.selectors.toolsDiv), textArea = form.querySelector(window.CONFIG.selectors.textArea);
+        const tools = form.querySelector(window.CONFIG.selectors.toolsDiv);
+        const textArea = form.querySelector(window.CONFIG.selectors.textArea);
         if (!tools || !textArea || tools.dataset.nskal) return; tools.dataset.nskal = '1';
 
         const pc = document.createElement('div'); pc.className = 'nskal-progress-container';
@@ -49,21 +135,59 @@ window.UI = {
         pc.appendChild(pb); tools.parentNode.insertBefore(pc, tools);
 
         const wrap = document.createElement('div'); wrap.style.display = 'inline-block'; wrap.style.marginLeft = '10px';
-        const qBtn = window.Utils.createButton('q-btn', 'NSKAL');
-        const hIn = document.createElement('input'); hIn.type = 'file'; hIn.multiple = true; hIn.style.display = 'none';
-        hIn.onchange = async (e) => {
-            const s = window.Storage.loadSettings();
-            const links = await window.Editor.uploadFilesToOPU(Array.from(e.target.files).map(f=>({original:f})), pc, pb, s);
-            links.forEach(l => { textArea.value += window.Formatter.generateOutput(l, s.toggles, s.customTemplate) + '\n'; });
+
+        // 1. OPU Upload (Quick)
+        const upBtn = window.Utils.createButton(`nskal-up-${type}`, 'OPU Upload');
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'file'; hiddenInput.multiple = true; hiddenInput.accept = 'image/*'; hiddenInput.style.display = 'none';
+
+        upBtn.onclick = async (e) => {
+            e.preventDefault();
+            const isLoggedIn = await window.API.checkLoginStatus();
+            if (!isLoggedIn) { window.open(window.CONFIG.urls.opu.login, '_blank'); alert('Please log in to OPU first.'); return; }
+            hiddenInput.click();
         };
-        qBtn.onclick = (e) => { e.preventDefault(); hIn.click(); };
 
-        const eBtn = window.Utils.createButton('e-btn', 'NSKAL Edit');
-        eBtn.onclick = (e) => { e.preventDefault(); window.Editor.openEditWindow(window, textArea, pc, pb); };
+        hiddenInput.onchange = async (e) => {
+            const files = Array.from(e.target.files);
+            if (!files.length) return;
+            const settings = window.Storage.loadSettings();
+            const fileObjs = files.map(f => ({ name: f.name, original: f, cropped: null }));
+            const links = await window.Editor.uploadFilesToOPU(fileObjs, pc, pb, settings);
 
-        const sBtn = window.Utils.createButton('s-btn', '⚙');
-        sBtn.onclick = (e) => { e.preventDefault(); document.getElementById('nskalSettingsContainer').style.display = 'flex'; };
+            let insertText = '';
+            links.forEach(link => {
+                let txt = window.Formatter.generateOutput(link, settings.toggles, settings.customTemplate);
+                // Fix: Append tag
+                if (!settings.toggles.customCode && settings.customTag) {
+                    txt += settings.customTag;
+                }
+                insertText += txt + '\n';
+            });
+            if (textArea.selectionStart || textArea.selectionStart == '0') {
+                const startPos = textArea.selectionStart; const endPos = textArea.selectionEnd;
+                textArea.value = textArea.value.substring(0, startPos) + insertText + textArea.value.substring(endPos, textArea.value.length);
+            } else { textArea.value += insertText; }
+        };
 
-        wrap.append(qBtn, eBtn, sBtn, hIn); tools.appendChild(wrap);
+        // 2. Edit & Upload
+        const editBtn = window.Utils.createButton(`nskal-edit-${type}`, 'Edit & Upload');
+        editBtn.onclick = async (e) => {
+            e.preventDefault();
+            const isLoggedIn = await window.API.checkLoginStatus();
+            if (!isLoggedIn) { window.open(window.CONFIG.urls.opu.login, '_blank'); alert('Please log in to OPU first.'); return; }
+            window.Editor.openEditWindow(window, textArea, pc, pb);
+        };
+
+        // 3. Settings
+        const setBtn = window.Utils.createButton(`nskal-set-${type}`, '⚙');
+        setBtn.onclick = (e) => {
+            e.preventDefault();
+            const panel = document.getElementById('nskalSettingsContainer');
+            if (panel) panel.style.display = 'flex'; else window.UI.createSettingsPanel();
+        };
+
+        wrap.append(upBtn, editBtn, setBtn, hiddenInput);
+        tools.appendChild(wrap);
     }
 };
