@@ -12,7 +12,6 @@ window.Editor = {
       --toolbar-h: 72px;
       --bg: #1e1e1e;
       --panel: #252526;
-      --panel2: #333;
       --border: #333;
       --accent: #e69138;
     }
@@ -27,9 +26,8 @@ window.Editor = {
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
     }
 
-    /* Use dynamic viewport height so mobile browser bars don't wreck things */
     body {
-      height: 100dvh;
+      height: 100dvh; /* dynamic viewport height for mobile */
       display: flex;
     }
 
@@ -43,7 +41,7 @@ window.Editor = {
     }
 
     .sidebar-header {
-      padding: 14px 14px;
+      padding: 14px;
       background: #2e2e2e;
       font-weight: 700;
       font-size: 13px;
@@ -76,7 +74,6 @@ window.Editor = {
       position: relative;
     }
 
-    /* Top bar in main area (only used for mobile queue toggle / title) */
     .topbar {
       height: 48px;
       flex: 0 0 auto;
@@ -106,19 +103,18 @@ window.Editor = {
       display: flex;
       justify-content: center;
       align-items: center;
+      touch-action: none; /* we control pointer gestures */
     }
 
-    /* Cropper image should fill stage */
     #image {
       max-width: 100%;
       max-height: 100%;
       display: block;
       user-select: none;
       -webkit-user-drag: none;
-      touch-action: none; /* cropper handles gestures */
+      touch-action: none;
     }
 
-    /* Sticky bottom toolbar */
     .controls {
       flex: 0 0 auto;
       height: var(--toolbar-h);
@@ -129,7 +125,7 @@ window.Editor = {
       justify-content: space-between;
       gap: 10px;
       padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px)) 10px;
-      z-index: 99999; /* be above cropper */
+      z-index: 99999; /* above cropper */
     }
 
     .controls .left, .controls .right {
@@ -198,6 +194,12 @@ window.Editor = {
       border-color: rgba(255,255,255,0.18);
     }
 
+    .btn-mode {
+      padding: 0 10px;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
     /* ===== Mobile layout ===== */
     @media (max-width: 820px) {
       body { display: block; }
@@ -218,7 +220,6 @@ window.Editor = {
 
       body.queue-open .sidebar { transform: translateX(0); }
 
-      /* Backdrop behind sidebar */
       .backdrop {
         position: fixed;
         inset: 0;
@@ -267,11 +268,15 @@ window.Editor = {
         <button class="btn" id="btnFlipH" title="Flip horizontal">↔</button>
         <button class="btn" id="btnFlipV" title="Flip vertical">↕</button>
         <button class="btn" id="btnReset" title="Reset">Reset</button>
+
+        <!-- One-thumb mode cycler: MOVE -> CROP -> ZOOM -->
+        <button class="btn btn-mode" id="btnMode" title="Mode (Move/Crop/Zoom)">✋</button>
+
         <div class="divider"></div>
-        <button class="btn btn-primary" id="saveBtn" title="Save crop">Save</button>
+        <button class="btn btn-primary" id="saveBtn" title="Save crop">💾</button>
       </div>
       <div class="right">
-        <button class="btn btn-success" id="nextBtn" title="Next image">Next</button>
+        <button class="btn btn-success" id="nextBtn" title="Next image">➡️</button>
       </div>
     </div>
   </div>
@@ -282,6 +287,46 @@ window.Editor = {
     const fileList = document.getElementById('fileList');
     const img = document.getElementById('image');
     const topTitle = document.getElementById('topTitle');
+    const stage = document.getElementById('stage');
+
+    // ===== Mode handling =====
+    // MOVE: drag image
+    // CROP: drag crop box / create crop area
+    // ZOOM: drag up/down to zoom (pinch still works)
+    let uiMode = 'MOVE'; // MOVE | CROP | ZOOM
+    let zoomPointerId = null;
+    let zoomStartY = 0;
+    let zoomStartRatio = 1;
+
+    const MODE_ICONS = {
+      MOVE: "✋",
+      CROP: "▢",
+      ZOOM: "🔍"
+    };
+
+    function setMode(mode) {
+      uiMode = mode;
+      const btn = document.getElementById('btnMode');
+      btn.textContent = MODE_ICONS[mode] || mode;
+
+      zoomPointerId = null;
+
+      if (!cropper) return;
+
+      if (mode === 'MOVE') {
+        cropper.setDragMode('move');
+      } else if (mode === 'CROP') {
+        cropper.setDragMode('crop');
+      } else if (mode === 'ZOOM') {
+        cropper.setDragMode('none'); // we'll hijack drag for zoom
+      }
+    }
+
+    function cycleMode() {
+      if (uiMode === 'MOVE') setMode('CROP');
+      else if (uiMode === 'CROP') setMode('ZOOM');
+      else setMode('MOVE');
+    }
 
     function formatSize(b) {
       return b < 1048576 ? (b/1024).toFixed(1)+' KB' : (b/1048576).toFixed(1)+' MB';
@@ -330,7 +375,6 @@ window.Editor = {
         fileList.appendChild(div);
       });
 
-      // Update title with current file on mobile topbar
       if (currentIdx >= 0 && window.files[currentIdx]) {
         topTitle.textContent = (currentIdx+1) + '/' + window.files.length + ' - ' + window.files[currentIdx].name;
       } else {
@@ -361,7 +405,8 @@ window.Editor = {
         scalable: true,
       });
 
-      // Let layout settle, then resize cropper so it matches actual viewport
+      setMode(uiMode);
+
       setTimeout(() => { try { cropper.resize(); } catch(e) {} }, 80);
     }
 
@@ -373,7 +418,6 @@ window.Editor = {
       const srcBlob = (f.cropped && f.cropped.blob) ? f.cropped.blob : f.original;
       img.src = URL.createObjectURL(srcBlob);
 
-      // Important: wait for image to load before creating cropper
       img.onload = () => {
         makeCropper();
         if (isMobile()) setQueueOpen(false);
@@ -409,6 +453,36 @@ window.Editor = {
       load(next);
     }
 
+    // ===== Drag-to-zoom when in ZOOM mode =====
+    stage.addEventListener('pointerdown', (e) => {
+      if (!cropper || uiMode !== 'ZOOM') return;
+      zoomPointerId = e.pointerId;
+      zoomStartY = e.clientY;
+      zoomStartRatio = cropper.getImageData().ratio || 1;
+      try { stage.setPointerCapture(zoomPointerId); } catch (_) {}
+      e.preventDefault();
+    });
+
+    stage.addEventListener('pointermove', (e) => {
+      if (!cropper || uiMode !== 'ZOOM') return;
+      if (zoomPointerId !== e.pointerId) return;
+
+      const dy = e.clientY - zoomStartY;
+      const factor = 1 + (-dy * 0.005); // up = zoom in
+      const target = Math.max(0.08, Math.min(12, zoomStartRatio * factor));
+
+      try { cropper.zoomTo(target); } catch (err) {}
+      e.preventDefault();
+    });
+
+    function endZoomDrag(e) {
+      if (zoomPointerId === null) return;
+      if (e.pointerId !== zoomPointerId) return;
+      zoomPointerId = null;
+    }
+    stage.addEventListener('pointerup', endZoomDrag);
+    stage.addEventListener('pointercancel', endZoomDrag);
+
     // Buttons
     document.getElementById('btnRotateL').onclick = () => { if (cropper) cropper.rotate(-90); };
     document.getElementById('btnRotateR').onclick = () => { if (cropper) cropper.rotate(90); };
@@ -418,16 +492,17 @@ window.Editor = {
     document.getElementById('resetBtnTop').onclick = () => { if (cropper) cropper.reset(); };
     document.getElementById('saveBtn').onclick = saveCurrent;
     document.getElementById('nextBtn').onclick = nextImage;
-
-    document.getElementById('doneBtn').onclick = () => {
-      window.opener.postMessage({ type: 'DONE', files: window.files }, '*');
-      window.close();
-    };
+    document.getElementById('btnMode').onclick = cycleMode;
 
     // Mobile queue toggle
     document.getElementById('openQueueBtn').onclick = () => setQueueOpen(true);
     document.getElementById('closeQueueBtn').onclick = () => setQueueOpen(false);
     document.getElementById('backdrop').onclick = () => setQueueOpen(false);
+
+    document.getElementById('doneBtn').onclick = () => {
+      window.opener.postMessage({ type: 'DONE', files: window.files }, '*');
+      window.close();
+    };
 
     // Keep cropper happy on viewport changes
     function scheduleResize() {
@@ -458,6 +533,9 @@ window.Editor = {
         updateMobileButtons();
         render();
         if (window.files.length) load(0);
+
+        // Default mode on load:
+        setMode('MOVE');
       }
     });
 
@@ -479,16 +557,15 @@ window.Editor = {
       if (!raw.length) return;
 
       const filesForEditor = await Promise.all(raw.map(f => new Promise(res => {
-        const img = new Image();
-        img.onload = () => {
-          res({ name: f.name, size: f.size, w: img.width, h: img.height, original: f, cropped: null });
-          URL.revokeObjectURL(img.src);
+        const im = new Image();
+        im.onload = () => {
+          res({ name: f.name, size: f.size, w: im.width, h: im.height, original: f, cropped: null });
+          URL.revokeObjectURL(im.src);
         };
-        img.onerror = () => {
-          // if image decode fails, still pass it through with unknown dims
+        im.onerror = () => {
           res({ name: f.name, size: f.size, w: 0, h: 0, original: f, cropped: null });
         };
-        img.src = URL.createObjectURL(f);
+        im.src = URL.createObjectURL(f);
       })));
 
       const win = window.open('', '_blank', 'width=1200,height=850');
@@ -512,12 +589,10 @@ window.Editor = {
           let insertText = '';
           links.forEach(link => {
             let txt = window.Formatter.generateOutput(link, settings.toggles, settings.customTemplate);
-
-            // Append tag (e.g. <br>) instead of wrapping
             if (!settings.toggles.customCode && settings.customTag) {
               txt = txt + settings.customTag;
             }
-            insertText += txt + '\\n';
+            insertText += txt + '\n';
           });
 
           textArea.value += insertText;
