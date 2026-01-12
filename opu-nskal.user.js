@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         OPU NSKAL MONKE
 // @namespace    http://tampermonkey.net/
-// @version      10.23
-// @description  Modular OPU Uploader with Drag & Drop and Metadata
+// @version      10.25
+// @description  Full modular uploader with Drag&Drop, Metadata, and v10.20 Tools
 // @author       Blasnik
 // @match        https://opu.peklo.biz/*
 // @match        https://www.okoun.cz/boards/*
@@ -29,25 +29,21 @@
 
 (function () {
     'use strict';
-    
-    // Check if on Okoun.cz to initialize
     if (window.location.hostname === 'www.okoun.cz') {
         GM_addStyle(window.STYLES);
         window.UI.createSettingsPanel();
-
+        
         const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                mutation.addedNodes.forEach((node) => {
+            mutations.forEach((m) => {
+                m.addedNodes.forEach((node) => {
                     if (node.nodeType !== 1) return;
                     if (node.matches && node.matches(window.CONFIG.selectors.mainPostForm)) window.UI.injectButtons(node, 'main');
                     else if (node.querySelectorAll) node.querySelectorAll(window.CONFIG.selectors.mainPostForm).forEach(f => window.UI.injectButtons(f, 'main'));
-                    
                     if (node.matches && node.matches(window.CONFIG.selectors.replyForm)) window.UI.injectButtons(node, 'reply');
                     else if (node.querySelectorAll) node.querySelectorAll(window.CONFIG.selectors.replyForm).forEach(f => window.UI.injectButtons(f, 'reply'));
                 });
             });
         });
-
         observer.observe(document.body, { childList: true, subtree: true });
         document.querySelectorAll(window.CONFIG.selectors.mainPostForm).forEach(f => window.UI.injectButtons(f, 'main'));
         document.querySelectorAll(window.CONFIG.selectors.replyForm).forEach(f => window.UI.injectButtons(f, 'reply'));

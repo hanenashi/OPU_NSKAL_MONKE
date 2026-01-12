@@ -12,9 +12,7 @@ window.Storage = {
             aHrefImg: window.Storage.get('toggleAHrefImg', false),
             customCode: window.Storage.get('toggleCustomCode', false),
             width: window.Storage.get('toggleWidth', false),
-            widthValue: window.Storage.get('widthValue', ''),
-            height: window.Storage.get('toggleHeight', false),
-            heightValue: window.Storage.get('heightValue', '')
+            widthValue: window.Storage.get('widthValue', '')
         }
     }),
     saveSettings: (s) => {
@@ -25,6 +23,5 @@ window.Storage = {
             window.Storage.set('toggle' + k.charAt(0).toUpperCase() + k.slice(1), v);
         }
         window.Storage.set('widthValue', s.toggles.widthValue);
-        window.Storage.set('heightValue', s.toggles.heightValue);
     }
 };

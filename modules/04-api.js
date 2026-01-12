@@ -17,7 +17,7 @@ window.API = {
                 url: window.CONFIG.urls.opu.upload,
                 data: fd,
                 upload: { onprogress: onProgress },
-                onload: (res) => res.status === 200 ? r(res) : j(res),
+                onload: (res) => r(res),
                 onerror: j
             });
         });
