@@ -1,23 +1,20 @@
-const ImageProcessor = {
-    resize: async (file, percentage) => {
-        if (percentage === 100) return file;
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            const url = URL.createObjectURL(file);
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                const newWidth = img.width * (percentage / 100);
-                const newHeight = img.height * (percentage / 100);
-                canvas.width = newWidth; canvas.height = newHeight;
-                ctx.drawImage(img, 0, 0, newWidth, newHeight);
-                canvas.toBlob((blob) => {
-                    URL.revokeObjectURL(url);
-                    resolve(new File([blob], file.name, { type: file.type }));
-                }, file.type);
+window.ImageProcessor = {
+    resize: (file, percentage) => {
+        return new Promise(resolve => {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width * (percentage / 100);
+                    canvas.height = img.height * (percentage / 100);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    canvas.toBlob(blob => resolve(new File([blob], file.name, { type: 'image/jpeg' })), 'image/jpeg', 0.9);
+                };
+                img.src = e.target.result;
             };
-            img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Image load failed")); };
-            img.src = url;
+            reader.readAsDataURL(file);
         });
     }
 };

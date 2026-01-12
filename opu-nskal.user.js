@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         OPU NSKAL MONKE (Final Fix)
+// @name         OPU NSKAL MONKE
 // @namespace    http://tampermonkey.net/
-// @version      10.21
-// @description  Upload files and fetch gallery links from OPU and integrate with okoun.cz
+// @version      10.23
+// @description  Modular OPU Uploader with Drag & Drop and Metadata
 // @author       Blasnik
 // @match        https://opu.peklo.biz/*
 // @match        https://www.okoun.cz/boards/*
@@ -27,55 +27,32 @@
 // @require      https://github.com/hanenashi/OPU_NSKAL_MONKE/raw/main/modules/08-ui.js
 // ==/UserScript==
 
-/* global CONFIG, STYLES, Utils, Storage, API, ImageProcessor, Formatter, Editor, UI */
-
 (function () {
     'use strict';
+    
+    // Check if on Okoun.cz to initialize
+    if (window.location.hostname === 'www.okoun.cz') {
+        GM_addStyle(window.STYLES);
+        window.UI.createSettingsPanel();
 
-    // Apply styles from the first module
-    GM_addStyle(STYLES);
-
-    // Initialize the settings panel
-    UI.createSettingsPanel();
-
-    // Helper for potential future mobile optimizations
-    const tweakOdeslatButton = () => {
-        // Placeholder for mobile UI adjustments if needed
-    };
-    tweakOdeslatButton();
-    window.addEventListener('resize', tweakOdeslatButton);
-
-    // Observer to handle dynamically loaded content (like reply forms)
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            if (!mutation.addedNodes.length) return;
-            mutation.addedNodes.forEach((node) => {
-                if (node.nodeType !== 1) return;
-                
-                // Inject buttons into main posts
-                if (node.matches && node.matches(CONFIG.selectors.mainPostForm)) {
-                    UI.injectButtons(node, 'main');
-                } else if (node.querySelectorAll) {
-                    node.querySelectorAll(CONFIG.selectors.mainPostForm).forEach(f => UI.injectButtons(f, 'main'));
-                }
-
-                // Inject buttons into reply forms
-                if (node.matches && node.matches(CONFIG.selectors.replyForm)) {
-                    UI.injectButtons(node, 'reply');
-                } else if (node.querySelectorAll) {
-                    node.querySelectorAll(CONFIG.selectors.replyForm).forEach(f => UI.injectButtons(f, 'reply'));
-                }
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType !== 1) return;
+                    if (node.matches && node.matches(window.CONFIG.selectors.mainPostForm)) window.UI.injectButtons(node, 'main');
+                    else if (node.querySelectorAll) node.querySelectorAll(window.CONFIG.selectors.mainPostForm).forEach(f => window.UI.injectButtons(f, 'main'));
+                    
+                    if (node.matches && node.matches(window.CONFIG.selectors.replyForm)) window.UI.injectButtons(node, 'reply');
+                    else if (node.querySelectorAll) node.querySelectorAll(window.CONFIG.selectors.replyForm).forEach(f => window.UI.injectButtons(f, 'reply'));
+                });
             });
         });
-    });
 
-    observer.observe(document.body, { childList: true, subtree: true });
+        observer.observe(document.body, { childList: true, subtree: true });
+        document.querySelectorAll(window.CONFIG.selectors.mainPostForm).forEach(f => window.UI.injectButtons(f, 'main'));
+        document.querySelectorAll(window.CONFIG.selectors.replyForm).forEach(f => window.UI.injectButtons(f, 'reply'));
+    }
 
-    // Initial injection for already present elements
-    document.querySelectorAll(CONFIG.selectors.mainPostForm).forEach(f => UI.injectButtons(f, 'main'));
-    document.querySelectorAll(CONFIG.selectors.replyForm).forEach(f => UI.injectButtons(f, 'reply'));
-
-    // Register Menu Command for easy settings access
     GM_registerMenuCommand('Open OPU NSKAL Settings', () => {
         const panel = document.getElementById('nskalSettingsContainer');
         if (panel) panel.style.display = 'flex';

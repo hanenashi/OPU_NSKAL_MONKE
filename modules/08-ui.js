@@ -1,157 +1,56 @@
-const UI = {
+window.UI = {
     createSettingsPanel: () => {
-        const container = document.createElement('div');
-        container.id = 'nskalSettingsContainer'; container.className = 'nskal-settings-overlay';
-        const modal = document.createElement('div'); modal.className = 'nskal-settings-modal';
-        const header = document.createElement('div'); header.className = 'nskal-settings-header';
-        header.innerHTML = `<div class="nskal-settings-title">OPU NSKAL Settings</div>`;
-        const closeBtn = document.createElement('button'); closeBtn.className = 'nskal-close-btn';
-        closeBtn.innerHTML = '&times;'; closeBtn.onclick = () => container.style.display = 'none';
-        header.appendChild(closeBtn); modal.appendChild(header);
-        const content = document.createElement('div');
-        let currentSettings = Storage.loadSettings();
-
-        // Resize Input
-        const resizeRow = document.createElement('div'); resizeRow.className = 'input-row';
-        resizeRow.innerHTML = `<label style="width:120px">Resize (%):</label>`;
-        const resizeInput = Utils.createInput('number', '100', 'nskal-input', currentSettings.resizePercentage);
-        resizeInput.style.width = '60px';
-        resizeInput.onchange = (e) => { currentSettings.resizePercentage = e.target.value; Storage.saveSettings(currentSettings); };
-        resizeRow.appendChild(resizeInput); content.appendChild(resizeRow);
-
-        // Custom Tag Input
-        const tagRow = document.createElement('div'); tagRow.className = 'input-row';
-        tagRow.innerHTML = `<label style="width:120px">Wrapper Tag:</label>`;
-        const tagInput = Utils.createInput('text', '<p>', 'nskal-input', currentSettings.customTag);
-        tagInput.onchange = (e) => { currentSettings.customTag = e.target.value; Storage.saveSettings(currentSettings); };
-        tagRow.appendChild(tagInput); content.appendChild(tagRow);
-
-        // Output Formats
-        const formatsDiv = document.createElement('div'); formatsDiv.style.marginBottom = '20px';
-        formatsDiv.innerHTML = `<div style="font-weight:bold; margin-bottom:10px">Output Format</div>`;
-        const formatOptions = [
-            { key: 'url', label: 'URL Only' }, { key: 'imgSrc', label: '<img> Tag' },
-            { key: 'aHref', label: 'Linked Image' }, { key: 'aHrefImg', label: 'Thumb -> Full' },
-            { key: 'customCode', label: 'Custom Code' }
-        ];
-        const previewBox = document.createElement('div'); previewBox.className = 'preview-box';
-        const updatePreview = () => {
-            const dummyLink = { full: 'https://opu.peklo.biz/p/23/10/18/1234.jpg' };
-            let txt = Formatter.generateOutput(dummyLink, currentSettings.toggles, currentSettings.customTemplate);
-            if (!currentSettings.toggles.customCode && currentSettings.customTag) {
-                const tag = currentSettings.customTag.replace(/[<>]/g, '');
-                txt = `<${tag}>` + txt + `</${tag}>`;
-            }
-            previewBox.textContent = txt;
-        };
-        const toggleContainer = document.createElement('div');
-        toggleContainer.style.display = 'flex'; toggleContainer.style.flexWrap = 'wrap'; toggleContainer.style.gap = '10px';
-        formatOptions.forEach(opt => {
-            const btn = Utils.createToggle(opt.label, currentSettings.toggles[opt.key], (e) => {
-                Object.keys(currentSettings.toggles).forEach(k => {
-                    if (['width','height','widthValue','heightValue'].indexOf(k) === -1) currentSettings.toggles[k] = false;
-                });
-                currentSettings.toggles[opt.key] = true;
-                Array.from(toggleContainer.children).forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                Storage.saveSettings(currentSettings);
-                updatePreview();
-            });
-            toggleContainer.appendChild(btn);
-        });
-        formatsDiv.appendChild(toggleContainer); content.appendChild(formatsDiv);
-
-        // Custom Code Template
-        const customCodeRow = document.createElement('div'); customCodeRow.className = 'input-row';
-        customCodeRow.innerHTML = `<label style="width:120px">Custom Tpl:</label>`;
-        const customInput = Utils.createInput('text', '[url]', 'nskal-input', currentSettings.customTemplate);
-        customInput.style.flex = '1';
-        customInput.onchange = (e) => { currentSettings.customTemplate = e.target.value; Storage.saveSettings(currentSettings); updatePreview(); };
-        customCodeRow.appendChild(customInput); content.appendChild(customCodeRow);
-
-        // Dimensions
-        const dimRow = document.createElement('div'); dimRow.className = 'input-row';
-        const wCheck = document.createElement('input'); wCheck.type = 'checkbox'; wCheck.checked = currentSettings.toggles.width;
-        const wVal = Utils.createInput('text', 'width', 'nskal-input', currentSettings.toggles.widthValue);
-        wVal.style.width = '50px'; wVal.style.marginRight = '15px';
-        const hCheck = document.createElement('input'); hCheck.type = 'checkbox'; hCheck.checked = currentSettings.toggles.height;
-        const hVal = Utils.createInput('text', 'height', 'nskal-input', currentSettings.toggles.heightValue);
-        hVal.style.width = '50px';
-        const saveDims = () => {
-            currentSettings.toggles.width = wCheck.checked; currentSettings.toggles.widthValue = wVal.value;
-            currentSettings.toggles.height = hCheck.checked; currentSettings.toggles.heightValue = hVal.value;
-            Storage.saveSettings(currentSettings); updatePreview();
-        };
-        wCheck.onchange = wVal.onchange = hCheck.onchange = hVal.onchange = saveDims;
-        dimRow.append(wCheck, ' W: ', wVal, hCheck, ' H: ', hVal); content.appendChild(dimRow);
-
-        content.appendChild(previewBox); modal.appendChild(content);
-        container.appendChild(modal); document.body.appendChild(container);
-        updatePreview();
+        if (document.getElementById('nskalSettingsContainer')) return;
+        const panel = document.createElement('div');
+        panel.id = 'nskalSettingsContainer';
+        panel.className = 'nskal-settings-overlay';
+        panel.innerHTML = `
+            <div class="nskal-settings-modal">
+                <div style="display:flex; justify-content:space-between; margin-bottom:15px; border-bottom:1px solid #c0a080; padding-bottom:5px">
+                    <b>NSKAL SETTINGS</b><button id="nskalClose" style="border:none; background:none; cursor:pointer;">✖</button>
+                </div>
+                <div id="nskalBody"></div>
+            </div>`;
+        document.body.appendChild(panel);
+        panel.querySelector('#nskalClose').onclick = () => panel.style.display = 'none';
+        window.UI.renderSettingsBody();
     },
-
+    renderSettingsBody: () => {
+        const s = window.Storage.loadSettings();
+        const body = document.getElementById('nskalBody');
+        body.innerHTML = `
+            <div class="settings-row">Resize: <input type="number" id="n_res" class="nskal-input" value="${s.resizePercentage}" style="width:50px">%</div>
+            <div class="settings-row">Tag: <input type="text" id="n_tag" class="nskal-input" value="${s.customTag}" style="width:80px"></div>
+            <div id="n_formats" style="display:flex; gap:5px; flex-wrap:wrap"></div>
+        `;
+        const formats = [{k:'url', l:'URL'}, {k:'imgSrc', l:'IMG'}, {k:'aHref', l:'AHR'}, {k:'aHrefImg', l:'AHRI'}, {k:'customCode', l:'Custom'}];
+        formats.forEach(f => {
+            const btn = document.createElement('button');
+            btn.className = 'nskal-button' + (s.toggles[f.k] ? ' active' : '');
+            btn.textContent = f.l;
+            btn.onclick = () => {
+                Object.keys(s.toggles).forEach(k => { if(!['width','height'].includes(k)) s.toggles[k]=false; });
+                s.toggles[f.k] = true; window.Storage.saveSettings(s); window.UI.renderSettingsBody();
+            };
+            body.querySelector('#n_formats').appendChild(btn);
+        });
+        body.querySelector('#n_res').onchange = (e) => { s.resizePercentage = e.target.value; window.Storage.saveSettings(s); };
+        body.querySelector('#n_tag').onchange = (e) => { s.customTag = e.target.value; window.Storage.saveSettings(s); };
+    },
     injectButtons: (form, type) => {
-        const toolsDiv = form.querySelector(CONFIG.selectors.toolsDiv);
-        const textArea = form.querySelector(CONFIG.selectors.textArea);
-        if (!toolsDiv || !textArea || toolsDiv.dataset.nskalInjected) return;
-        toolsDiv.dataset.nskalInjected = 'true';
+        const tools = form.querySelector(window.CONFIG.selectors.toolsDiv), textArea = form.querySelector(window.CONFIG.selectors.textArea);
+        if (!tools || !textArea || tools.dataset.nskal) return; tools.dataset.nskal = '1';
 
-        const progContainer = document.createElement('div'); progContainer.className = 'nskal-progress-container';
-        const progBar = document.createElement('div'); progBar.className = 'nskal-progress-bar';
-        progContainer.appendChild(progBar);
-        toolsDiv.parentNode.insertBefore(progContainer, toolsDiv);
+        const pc = document.createElement('div'); pc.className = 'nskal-progress-container';
+        const pb = document.createElement('div'); pb.className = 'nskal-progress-bar';
+        pc.appendChild(pb); tools.parentNode.insertBefore(pc, tools);
 
-        const btnWrapper = document.createElement('div');
-        btnWrapper.style.display = 'inline-block'; btnWrapper.style.marginLeft = '10px';
+        const wrap = document.createElement('div'); wrap.style.display = 'inline-block'; wrap.style.marginLeft = '10px';
+        const btn = window.Utils.createButton('main-btn', 'NSKAL');
+        btn.onclick = (e) => { e.preventDefault(); window.Editor.openEditWindow(window, textArea, pc, pb); };
+        const set = window.Utils.createButton('set-btn', '⚙');
+        set.onclick = (e) => { e.preventDefault(); document.getElementById('nskalSettingsContainer').style.display = 'flex'; };
 
-        const upBtn = Utils.createButton(`nskal-up-${type}`, 'OPU Upload');
-        const hiddenInput = document.createElement('input');
-        hiddenInput.type = 'file'; hiddenInput.multiple = true; hiddenInput.accept = 'image/*'; hiddenInput.style.display = 'none';
-
-        upBtn.onclick = async (e) => {
-            e.preventDefault();
-            const isLoggedIn = await API.checkLoginStatus();
-            if (!isLoggedIn) { window.open(CONFIG.urls.opu.login, '_blank'); alert('Please log in to OPU first.'); return; }
-            hiddenInput.click();
-        };
-
-        hiddenInput.onchange = async (e) => {
-            const files = Array.from(e.target.files);
-            if (!files.length) return;
-            const settings = Storage.loadSettings();
-            const fileObjs = files.map(f => ({ name: f.name, original: f, cropped: null }));
-            const links = await Editor.uploadFilesToOPU(fileObjs, progContainer, progBar, settings);
-            let insertText = '';
-            links.forEach(link => {
-                let txt = Formatter.generateOutput(link, settings.toggles, settings.customTemplate);
-                if (!settings.toggles.customCode && settings.customTag) {
-                    const tag = settings.customTag.replace(/[<>]/g, '');
-                    txt = `<${tag}>` + txt + `</${tag}>`;
-                }
-                insertText += txt + '\n';
-            });
-            if (textArea.selectionStart || textArea.selectionStart == '0') {
-                const startPos = textArea.selectionStart; const endPos = textArea.selectionEnd;
-                textArea.value = textArea.value.substring(0, startPos) + insertText + textArea.value.substring(endPos, textArea.value.length);
-            } else { textArea.value += insertText; }
-        };
-
-        const editBtn = Utils.createButton(`nskal-edit-${type}`, 'Edit & Upload');
-        editBtn.onclick = async (e) => {
-            e.preventDefault();
-            const isLoggedIn = await API.checkLoginStatus();
-            if (!isLoggedIn) { window.open(CONFIG.urls.opu.login, '_blank'); alert('Please log in to OPU first.'); return; }
-            Editor.openEditWindow(window, textArea, progContainer, progBar);
-        };
-
-        const setBtn = Utils.createButton(`nskal-set-${type}`, '⚙');
-        setBtn.onclick = (e) => {
-            e.preventDefault();
-            const panel = document.getElementById('nskalSettingsContainer');
-            if (panel) panel.style.display = 'flex'; else UI.createSettingsPanel();
-        };
-
-        btnWrapper.append(upBtn, editBtn, setBtn, hiddenInput);
-        toolsDiv.appendChild(btnWrapper);
+        wrap.append(btn, set); tools.appendChild(wrap);
     }
 };

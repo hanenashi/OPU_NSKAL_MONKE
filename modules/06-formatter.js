@@ -1,22 +1,20 @@
-const Formatter = {
+window.Formatter = {
     generateOutput: (link, toggles, template) => {
         if (toggles.customCode) return template.replace(/\[url\]/g, link.full);
         if (toggles.aHrefImg) {
-            const thumbUrl = link.full.replace(/\/p\/(\d+\/\d+\/\d+\/)([^/]+)$/, '/p/$1thumbs/$2');
-            let imgTag = `<img src="${thumbUrl}"`;
-            if (toggles.width && toggles.widthValue) imgTag += ` width="${toggles.widthValue}"`;
-            if (toggles.height && toggles.heightValue) imgTag += ` height="${toggles.heightValue}"`;
-            return `<a href="${link.full}">${imgTag}></a>`;
+            const thumb = link.full.replace(/\/p\/(\d+\/\d+\/\d+\/)([^/]+)$/, '/p/$1thumbs/$2');
+            let tag = `<img src="${thumb}"`;
+            if (toggles.width && toggles.widthValue) tag += ` width="${toggles.widthValue}"`;
+            if (toggles.height && toggles.heightValue) tag += ` height="${toggles.heightValue}"`;
+            return `<a href="${link.full}">${tag}></a>`;
         }
         if (toggles.url) return link.full;
-        let output = '';
+        let out = toggles.imgSrc ? `<img src="${link.full}"` : link.full;
         if (toggles.imgSrc) {
-            output = `<img src="${link.full}"`;
-            if (toggles.width && toggles.widthValue) output += ` width="${toggles.widthValue}"`;
-            if (toggles.height && toggles.heightValue) output += ` height="${toggles.heightValue}"`;
-            output += '>';
-        } else { output = link.full; }
-        if (toggles.aHref) return `<a href="${link.full}">${output}</a>`;
-        return output;
+            if (toggles.width && toggles.widthValue) out += ` width="${toggles.widthValue}"`;
+            if (toggles.height && toggles.heightValue) out += ` height="${toggles.heightValue}"`;
+            out += '>';
+        }
+        return toggles.aHref ? `<a href="${link.full}">${out}</a>` : out;
     }
 };
